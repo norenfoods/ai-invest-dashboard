@@ -1,21 +1,26 @@
 import { getCache, setCache } from "@/lib/cache/simpleCache";
 import { getFmpApiKey } from "@/lib/env";
+import { watchlistStocks } from "@/lib/mockData";
 
 const FMP_BASE_URL = "https://financialmodelingprep.com/stable";
 const QUOTE_TTL = 60_000;
 const PROFILE_TTL = 24 * 60 * 60_000;
 const INCOME_STATEMENT_TTL = 6 * 60 * 60_000;
+const BALANCE_SHEET_TTL = 6 * 60 * 60_000;
+const CASH_FLOW_TTL = 6 * 60 * 60_000;
 const NEWS_TTL = 10 * 60_000;
 const MARKET_INDEXES_TTL = 60_000;
 
 export type FmpQuote = {
   symbol?: string;
   name?: string;
-  price?: number;
-  change?: number;
-  changesPercentage?: number;
-  marketCap?: number;
-  pe?: number;
+  price?: number | null;
+  change?: number | null;
+  changesPercentage?: number | null;
+  marketCap?: number | null;
+  pe?: number | null;
+  psRatio?: number | null;
+  dataStatus?: "live" | "fallback" | "missing";
 };
 
 export type FmpCompanyProfile = {
@@ -30,9 +35,29 @@ export type FmpCompanyProfile = {
 
 export type FmpIncomeStatement = {
   date?: string;
+  calendarYear?: string;
   revenue?: number;
   grossProfit?: number;
+  operatingIncome?: number;
   netIncome?: number;
+  eps?: number;
+  epsdiluted?: number;
+};
+
+export type FmpBalanceSheetStatement = {
+  date?: string;
+  calendarYear?: string;
+  totalAssets?: number;
+  totalLiabilities?: number;
+  totalDebt?: number;
+};
+
+export type FmpCashFlowStatement = {
+  date?: string;
+  calendarYear?: string;
+  operatingCashFlow?: number;
+  capitalExpenditure?: number;
+  freeCashFlow?: number;
 };
 
 export type FmpStockNews = {
@@ -44,6 +69,65 @@ export type FmpStockNews = {
   url?: string;
   text?: string;
 };
+
+const normalizeSymbol = (symbol: string): string =>
+  symbol.trim().replace(/\s+/g, "").toUpperCase();
+
+const createQuoteLog = (
+  symbol: string,
+  requestUrl: string,
+  responseStatus: number | "not_requested" | "error",
+  emptyArray: boolean | "unknown",
+  fallbackReason: string,
+) => {
+  console.info("[FMP quote]", {
+    symbol,
+    requestUrl,
+    responseStatus,
+    emptyArray,
+    fallbackReason,
+  });
+
+  if (symbol.includes(".")) {
+    console.info("[FMP quote] symbol contains dot; FMP may require a special exchange symbol format", {
+      symbol,
+    });
+  }
+};
+
+const findMockQuote = (symbol: string): FmpQuote | null => {
+  const mock = watchlistStocks.find(
+    (stock) => stock.symbol.toUpperCase() === symbol.toUpperCase(),
+  );
+
+  if (!mock) {
+    return null;
+  }
+
+  return {
+    symbol: mock.symbol,
+    name: mock.companyName,
+    price: mock.price,
+    change: mock.change,
+    changesPercentage: mock.changePercent,
+    marketCap: null,
+    pe: mock.peRatio,
+    psRatio: mock.psRatio,
+    dataStatus: "fallback",
+  };
+};
+
+const createMissingQuote = (symbol: string): FmpQuote => ({
+  symbol,
+  name: symbol,
+  price: null,
+  change: null,
+  changesPercentage: null,
+  marketCap: null,
+  pe: null,
+  psRatio: null,
+  dataStatus: "missing",
+});
 
 async function fmpFetch<T>(
   path: string,
@@ -98,16 +182,109 @@ export async function getQuote(
   symbol: string,
   forceRefresh = false,
 ): Promise<FmpQuote | null> {
+  const normalizedSymbol = normalizeSymbol(symbol);
+  const apiKey = getFmpApiKey();
+  const url = new URL(`${FMP_BASE_URL}/quote`);
+  const cacheKey = `fmp:/quote:${normalizedSymbol}`;
+
+  url.searchParams.set("symbol", normalizedSymbol);
+
   try {
-    const data = await fmpFetch<FmpQuote[]>(
-      "/quote",
-      { symbol },
-      QUOTE_TTL,
-      forceRefresh,
-    );
-    return data?.[0] ?? null;
+    if (!normalizedSymbol) {
+      createQuoteLog(
+        normalizedSymbol,
+        url.toString(),
+        "not_requested",
+        "unknown",
+        "empty_symbol",
+      );
+      return createMissingQuote(normalizedSymbol);
+    }
+
+    if (!forceRefresh) {
+      const cached = getCache<FmpQuote>(cacheKey);
+
+      if (cached) {
+        createQuoteLog(
+          normalizedSymbol,
+          url.toString(),
+          "not_requested",
+          "unknown",
+          "cache_hit",
+        );
+        return cached;
+      }
+    }
+
+    if (!apiKey) {
+      const fallback = findMockQuote(normalizedSymbol) ?? createMissingQuote(normalizedSymbol);
+      createQuoteLog(
+        normalizedSymbol,
+        url.toString(),
+        "not_requested",
+        "unknown",
+        fallback.dataStatus === "fallback" ? "missing_api_key_mock_fallback" : "missing_api_key_no_mock",
+      );
+      setCache(cacheKey, fallback, QUOTE_TTL);
+      return fallback;
+    }
+
+    const requestUrl = url.toString();
+    url.searchParams.set("apikey", apiKey);
+
+    const response = await fetch(url.toString(), {
+      next: { revalidate: 300 },
+    });
+
+    if (!response.ok) {
+      const fallback = findMockQuote(normalizedSymbol) ?? createMissingQuote(normalizedSymbol);
+      createQuoteLog(
+        normalizedSymbol,
+        requestUrl,
+        response.status,
+        "unknown",
+        fallback.dataStatus === "fallback" ? "http_error_mock_fallback" : "http_error_no_mock",
+      );
+      setCache(cacheKey, fallback, QUOTE_TTL);
+      return fallback;
+    }
+
+    const data = (await response.json()) as FmpQuote[];
+    const emptyArray = data.length === 0;
+
+    if (emptyArray) {
+      const fallback = findMockQuote(normalizedSymbol) ?? createMissingQuote(normalizedSymbol);
+      createQuoteLog(
+        normalizedSymbol,
+        requestUrl,
+        response.status,
+        true,
+        fallback.dataStatus === "fallback" ? "empty_quote_mock_fallback" : "empty_quote_no_mock",
+      );
+      setCache(cacheKey, fallback, QUOTE_TTL);
+      return fallback;
+    }
+
+    const quote: FmpQuote = {
+      ...data[0],
+      symbol: data[0]?.symbol ?? normalizedSymbol,
+      dataStatus: "live",
+    };
+
+    createQuoteLog(normalizedSymbol, requestUrl, response.status, false, "none");
+    setCache(cacheKey, quote, QUOTE_TTL);
+    return quote;
   } catch {
-    return null;
+    const fallback = findMockQuote(normalizedSymbol) ?? createMissingQuote(normalizedSymbol);
+    createQuoteLog(
+      normalizedSymbol,
+      url.toString(),
+      "error",
+      "unknown",
+      fallback.dataStatus === "fallback" ? "exception_mock_fallback" : "exception_no_mock",
+    );
+    setCache(cacheKey, fallback, QUOTE_TTL);
+    return fallback;
   }
 }
 
@@ -131,15 +308,61 @@ export async function getCompanyProfile(
 export async function getIncomeStatement(
   symbol: string,
   forceRefresh = false,
+  limit = 4,
 ): Promise<FmpIncomeStatement[]> {
   try {
     const data = await fmpFetch<FmpIncomeStatement[]>(
       "/income-statement",
       {
         symbol,
-        limit: 4,
+        period: "annual",
+        limit,
       },
       INCOME_STATEMENT_TTL,
+      forceRefresh,
+    );
+    return data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getBalanceSheetStatements(
+  symbol: string,
+  forceRefresh = false,
+  limit = 5,
+): Promise<FmpBalanceSheetStatement[]> {
+  try {
+    const data = await fmpFetch<FmpBalanceSheetStatement[]>(
+      "/balance-sheet-statement",
+      {
+        symbol,
+        period: "annual",
+        limit,
+      },
+      BALANCE_SHEET_TTL,
+      forceRefresh,
+    );
+    return data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getCashFlowStatements(
+  symbol: string,
+  forceRefresh = false,
+  limit = 5,
+): Promise<FmpCashFlowStatement[]> {
+  try {
+    const data = await fmpFetch<FmpCashFlowStatement[]>(
+      "/cash-flow-statement",
+      {
+        symbol,
+        period: "annual",
+        limit,
+      },
+      CASH_FLOW_TTL,
       forceRefresh,
     );
     return data ?? [];

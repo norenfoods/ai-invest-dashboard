@@ -36,15 +36,15 @@ const normalizeAnalysis = (
 };
 
 const buildMockAnalysis = (stock: Stock): StockAIAnalysis => ({
-  summary: `${stock.companyName}（${stock.symbol}）当前处于${stock.sector}板块，价格变动为${stock.changePercent.toFixed(2)}%。从 mock 数据看，营收增长率为${stock.revenueGrowth.toFixed(1)}%，毛利率为${stock.grossMargin.toFixed(1)}%，适合从增长质量、利润率和估值消化角度继续研究。${DISCLAIMER}`,
+  summary: `${stock.companyName}（${stock.symbol}）当前处于${stock.sector}板块，价格变动为${stock.changePercent?.toFixed(2) ?? "暂无实时价格"}%。从数据看，营收增长率为${stock.revenueGrowth?.toFixed(1) ?? "—"}%，毛利率为${stock.grossMargin?.toFixed(1) ?? "—"}%，适合从增长质量、利润率和估值消化角度继续研究。${DISCLAIMER}`,
   strengths: [
     `${stock.industry}方向具备明确研究主线。`,
-    `毛利率为${stock.grossMargin.toFixed(1)}%，可用于观察商业模式质量。`,
+    `毛利率为${stock.grossMargin?.toFixed(1) ?? "—"}%，可用于观察商业模式质量。`,
     `AI 摘要显示核心业务仍有可跟踪变量。`,
   ],
   risks: [
     `当前风险等级为${stock.riskLevel}，需要控制结论外推。`,
-    `PE 为${stock.peRatio}，估值变化可能放大波动。`,
+    `PE 为${stock.peRatio ?? "—"}，估值变化可能放大波动。`,
     `新闻与财报数据需要持续更新验证。`,
   ],
   watchPoints: [

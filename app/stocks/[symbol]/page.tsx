@@ -45,6 +45,21 @@ const alertTypeLabel = {
   highRiskHolding: "高风险持仓",
 };
 
+const dataStatusLabel = {
+  live: "实时数据",
+  fallback: "使用 fallback",
+  missing: "数据缺失",
+};
+
+const formatPrice = (value: number | null): string =>
+  value === null ? "暂无实时价格" : `$${value.toFixed(2)}`;
+
+const formatNumber = (value: number | null): string =>
+  value === null ? "—" : value.toString();
+
+const formatPercent = (value: number | null): string =>
+  value === null ? "—" : `${value.toFixed(1)}%`;
+
 export default async function StockDetailPage({ params }: StockDetailPageProps) {
   const { symbol } = await params;
   const stock = await getStockBySymbol(symbol);
@@ -58,7 +73,7 @@ export default async function StockDetailPage({ params }: StockDetailPageProps) 
     analyzeStock(stock, incomeStatement, stock.news),
     getAlertsForStock(stock.symbol),
   ]);
-  const changeTone = stock.changePercent >= 0 ? "positive" : "negative";
+  const changeTone = (stock.changePercent ?? 0) >= 0 ? "positive" : "negative";
 
   return (
     <div className="space-y-6">
@@ -70,37 +85,45 @@ export default async function StockDetailPage({ params }: StockDetailPageProps) 
           </h1>
         </div>
         <div className="rounded border border-terminal-border bg-terminal-panel px-4 py-2 text-sm text-terminal-muted">
-          {stock.sector} · {stock.industry}
+          {stock.sector} · {stock.industry} · {dataStatusLabel[stock.dataStatus]}
         </div>
       </div>
 
       <DataStatusBar />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <MetricCard label="当前价格" value={`$${stock.price.toFixed(2)}`} />
+        <MetricCard label="当前价格" value={formatPrice(stock.price)} />
         <MetricCard
           label="今日涨跌幅"
-          value={`${stock.changePercent > 0 ? "+" : ""}${stock.changePercent.toFixed(2)}%`}
-          subValue={`${stock.change > 0 ? "+" : ""}${stock.change.toFixed(2)}`}
+          value={
+            stock.changePercent === null
+              ? "—"
+              : `${stock.changePercent > 0 ? "+" : ""}${stock.changePercent.toFixed(2)}%`
+          }
+          subValue={
+            stock.change === null
+              ? "—"
+              : `${stock.change > 0 ? "+" : ""}${stock.change.toFixed(2)}`
+          }
           tone={changeTone}
         />
         <MetricCard label="市值" value={stock.marketCap} />
-        <MetricCard label="PE" value={stock.peRatio.toString()} />
-        <MetricCard label="PS" value={stock.psRatio.toString()} />
+        <MetricCard label="PE" value={formatNumber(stock.peRatio)} />
+        <MetricCard label="PS" value={formatNumber(stock.psRatio)} />
         <MetricCard
           label="营收增长率"
-          value={`${stock.revenueGrowth.toFixed(1)}%`}
-          tone={stock.revenueGrowth >= 0 ? "positive" : "negative"}
+          value={formatPercent(stock.revenueGrowth)}
+          tone={(stock.revenueGrowth ?? 0) >= 0 ? "positive" : "negative"}
         />
         <MetricCard
           label="毛利率"
-          value={`${stock.grossMargin.toFixed(1)}%`}
-          tone={stock.grossMargin >= 50 ? "positive" : "warning"}
+          value={formatPercent(stock.grossMargin)}
+          tone={(stock.grossMargin ?? 0) >= 50 ? "positive" : "warning"}
         />
         <MetricCard
           label="净利率"
-          value={`${stock.netMargin.toFixed(1)}%`}
-          tone={stock.netMargin >= 20 ? "positive" : "warning"}
+          value={formatPercent(stock.netMargin)}
+          tone={(stock.netMargin ?? 0) >= 20 ? "positive" : "warning"}
         />
         <MetricCard
           label="下次财报日"
@@ -120,7 +143,7 @@ export default async function StockDetailPage({ params }: StockDetailPageProps) 
         <DashboardCard title="股价折线图" eyebrow={`${stock.symbol} Price Trend`}>
           <StockChart
             data={stock.chart}
-            color={stock.changePercent >= 0 ? "#19C37D" : "#FF5C7A"}
+            color={(stock.changePercent ?? 0) >= 0 ? "#19C37D" : "#FF5C7A"}
           />
         </DashboardCard>
 

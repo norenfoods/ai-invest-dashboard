@@ -6,20 +6,21 @@ export type TrendPoint = {
 export type Stock = {
   symbol: string;
   companyName: string;
-  price: number;
-  change: number;
-  changePercent: number;
+  price: number | null;
+  change: number | null;
+  changePercent: number | null;
   marketCap: string;
-  peRatio: number;
-  psRatio: number;
-  revenueGrowth: number;
-  grossMargin: number;
-  netMargin: number;
+  peRatio: number | null;
+  psRatio: number | null;
+  revenueGrowth: number | null;
+  grossMargin: number | null;
+  netMargin: number | null;
   sector: string;
   industry: string;
   nextEarningsDate: string;
   aiSummary: string;
   riskLevel: "高" | "中" | "低";
+  dataStatus: "live" | "fallback" | "missing";
   news: StockNews[];
   chart: TrendPoint[];
 };
@@ -115,6 +116,7 @@ export const watchlistStocks: Stock[] = [
     aiSummary:
       "苹果短线受益于回购和服务收入韧性，硬件换机周期仍是主要观察点。估值处于偏高区间，适合关注新品周期与毛利率稳定性。",
     riskLevel: "中",
+    dataStatus: "fallback",
     news: [
       {
         id: "AAPL-mock-1",
@@ -143,6 +145,7 @@ export const watchlistStocks: Stock[] = [
     aiSummary:
       "微软基本面由云业务和 AI 工作负载驱动，收入质量较高。当前核心变量是 Azure 增速、AI 资本开支回报和企业软件预算。",
     riskLevel: "低",
+    dataStatus: "fallback",
     news: [
       {
         id: "MSFT-mock-1",
@@ -171,6 +174,7 @@ export const watchlistStocks: Stock[] = [
     aiSummary:
       "英伟达仍是 AI 算力链条的核心标的，增长和利润率表现强劲。主要风险来自高预期、供应链波动以及客户资本开支节奏变化。",
     riskLevel: "中",
+    dataStatus: "fallback",
     news: [
       {
         id: "NVDA-mock-1",
@@ -199,6 +203,7 @@ export const watchlistStocks: Stock[] = [
     aiSummary:
       "亚马逊的利润修复仍在推进，AWS 增长和广告业务是估值支撑。需跟踪零售履约成本、云竞争和消费需求变化。",
     riskLevel: "中",
+    dataStatus: "fallback",
     news: [
       {
         id: "AMZN-mock-1",
@@ -227,6 +232,7 @@ export const watchlistStocks: Stock[] = [
     aiSummary:
       "谷歌搜索和 YouTube 现金流稳健，AI 搜索形态变化是中长期变量。估值相对大型科技同业仍具一定防御性。",
     riskLevel: "中",
+    dataStatus: "fallback",
     news: [
       {
         id: "GOOGL-mock-1",
@@ -255,6 +261,7 @@ export const watchlistStocks: Stock[] = [
     aiSummary:
       "Meta 广告业务恢复强劲，成本纪律改善利润弹性。AI 推荐系统提升变现效率，但元宇宙投入仍需持续评估。",
     riskLevel: "低",
+    dataStatus: "fallback",
     news: [
       {
         id: "META-mock-1",
@@ -283,6 +290,7 @@ export const watchlistStocks: Stock[] = [
     aiSummary:
       "特斯拉短期承压来自交付增速放缓与价格竞争。市场对自动驾驶和能源业务仍有期权定价，但盈利可见度需要改善。",
     riskLevel: "高",
+    dataStatus: "fallback",
     news: [
       {
         id: "TSLA-mock-1",

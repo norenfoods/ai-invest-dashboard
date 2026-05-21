@@ -29,7 +29,7 @@ export const watchlistSymbols = [
   "TSLA",
 ];
 
-const formatMarketCap = (value?: number): string | null => {
+const formatMarketCap = (value?: number | null): string | null => {
   if (!value || value <= 0) {
     return null;
   }
@@ -95,20 +95,21 @@ const createFallbackStock = (symbol: string): Stock => {
   return {
     symbol: normalized,
     companyName: normalized,
-    price: 0,
-    change: 0,
-    changePercent: 0,
+    price: null,
+    change: null,
+    changePercent: null,
     marketCap: "N/A",
-    peRatio: 0,
-    psRatio: 0,
-    revenueGrowth: 0,
-    grossMargin: 0,
-    netMargin: 0,
+    peRatio: null,
+    psRatio: null,
+    revenueGrowth: null,
+    grossMargin: null,
+    netMargin: null,
     sector: "待确认",
     industry: "待确认",
     nextEarningsDate: "N/A",
     aiSummary: "暂无 mock 摘要，等待真实数据补充。",
     riskLevel: "中",
+    dataStatus: "missing",
     news: [
       {
         id: `${normalized}-mock-news`,
@@ -159,18 +160,22 @@ async function mergeStockData(
     return {
       ...mock,
       companyName: profile?.companyName ?? quote?.name ?? mock.companyName,
-      price: quote?.price ?? profile?.price ?? mock.price,
+      price:
+        quote?.dataStatus === "missing"
+          ? null
+          : quote?.price ?? profile?.price ?? mock.price,
       change: quote?.change ?? mock.change,
       changePercent: quote?.changesPercentage ?? mock.changePercent,
       marketCap: formatMarketCap(marketCap) ?? mock.marketCap,
       peRatio: quote?.pe ?? mock.peRatio,
-      psRatio: psRatio ?? mock.psRatio,
+      psRatio: quote?.psRatio ?? psRatio ?? mock.psRatio,
       revenueGrowth: calculateRevenueGrowth(incomeStatement) ?? mock.revenueGrowth,
       grossMargin: grossMargin ?? mock.grossMargin,
       netMargin: netMargin ?? mock.netMargin,
       sector: profile?.sector ?? mock.sector,
       industry: profile?.industry ?? mock.industry,
       news: mapNews(news, mock.news),
+      dataStatus: quote?.dataStatus ?? mock.dataStatus,
     };
   } catch {
     return mock;

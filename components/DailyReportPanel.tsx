@@ -80,7 +80,7 @@ export default function DailyReportPanel({
   }, []);
 
   const leaders = [...stocks]
-    .sort((a, b) => b.changePercent - a.changePercent)
+    .sort((a, b) => (b.changePercent ?? -Infinity) - (a.changePercent ?? -Infinity))
     .slice(0, 3);
 
   return (
@@ -144,13 +144,14 @@ export default function DailyReportPanel({
               </div>
               <div
                 className={
-                  stock.changePercent >= 0
+                  (stock.changePercent ?? 0) >= 0
                     ? "text-terminal-green"
                     : "text-terminal-red"
                 }
               >
-                {stock.changePercent > 0 ? "+" : ""}
-                {stock.changePercent.toFixed(2)}%
+                {stock.changePercent === null
+                  ? "—"
+                  : `${stock.changePercent > 0 ? "+" : ""}${stock.changePercent.toFixed(2)}%`}
               </div>
             </div>
           ))}

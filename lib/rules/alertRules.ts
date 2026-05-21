@@ -56,7 +56,7 @@ export function evaluateStockAlerts(stock: Stock, now = new Date()): StockAlert[
   const createdAt = now.toISOString();
   const alerts: StockAlert[] = [];
 
-  if (stock.peRatio > 60 || stock.psRatio > 20) {
+  if ((stock.peRatio ?? 0) > 60 || (stock.psRatio ?? 0) > 20) {
     alerts.push(
       createAlert(
         stock,
@@ -68,7 +68,7 @@ export function evaluateStockAlerts(stock: Stock, now = new Date()): StockAlert[
     );
   }
 
-  if (stock.revenueGrowth < 0) {
+  if ((stock.revenueGrowth ?? 0) < 0) {
     alerts.push(
       createAlert(
         stock,
@@ -80,7 +80,7 @@ export function evaluateStockAlerts(stock: Stock, now = new Date()): StockAlert[
     );
   }
 
-  if (stock.grossMargin < 30 || stock.netMargin < 10) {
+  if ((stock.grossMargin ?? 100) < 30 || (stock.netMargin ?? 100) < 10) {
     alerts.push(
       createAlert(
         stock,
@@ -106,7 +106,7 @@ export function evaluateStockAlerts(stock: Stock, now = new Date()): StockAlert[
     );
   }
 
-  if (Math.abs(stock.changePercent) >= 5) {
+  if (Math.abs(stock.changePercent ?? 0) >= 5) {
     alerts.push(
       createAlert(
         stock,

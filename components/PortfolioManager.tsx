@@ -259,7 +259,7 @@ export default function PortfolioManager({ initialStocks }: PortfolioManagerProp
                   {currency(row.position.avgCost)}
                 </td>
                 <td className="py-4 text-right text-terminal-text">
-                  {currency(row.currentPrice)}
+                  {row.stock?.price === null ? "暂无实时价格" : currency(row.currentPrice)}
                 </td>
                 <td className="py-4 text-right text-terminal-text">
                   {currency(row.marketValue)}

@@ -14,6 +14,18 @@ type WatchlistManagerProps = {
   initialStocks: Stock[];
 };
 
+const dataStatusLabel = {
+  live: "实时",
+  fallback: "模拟",
+  missing: "缺失",
+};
+
+const formatPrice = (value: number | null): string =>
+  value === null ? "暂无实时价格" : `$${value.toFixed(2)}`;
+
+const formatPercent = (value: number | null): string =>
+  value === null ? "—" : `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
+
 async function fetchWatchlist(symbols: string[], refresh = false): Promise<Stock[]> {
   try {
     const params = new URLSearchParams({ symbols: symbols.join(",") });
@@ -128,6 +140,7 @@ export default function WatchlistManager({ initialStocks }: WatchlistManagerProp
               <th className="pb-3 text-right font-medium">市值</th>
               <th className="pb-3 text-right font-medium">PE</th>
               <th className="pb-3 text-right font-medium">PS</th>
+              <th className="pb-3 text-right font-medium">数据状态</th>
               <th className="pb-3 text-right font-medium">风险</th>
               <th className="pb-3 text-right font-medium">操作</th>
             </tr>
@@ -150,26 +163,28 @@ export default function WatchlistManager({ initialStocks }: WatchlistManagerProp
                 <td className="py-4 text-terminal-muted">{stock.sector}</td>
                 <td className="py-4 text-terminal-muted">{stock.industry}</td>
                 <td className="py-4 text-right text-terminal-text">
-                  ${stock.price.toFixed(2)}
+                  {formatPrice(stock.price)}
                 </td>
                 <td
                   className={`py-4 text-right font-medium ${
-                    stock.changePercent >= 0
+                    (stock.changePercent ?? 0) >= 0
                       ? "text-terminal-green"
                       : "text-terminal-red"
                   }`}
                 >
-                  {stock.changePercent > 0 ? "+" : ""}
-                  {stock.changePercent.toFixed(2)}%
+                  {formatPercent(stock.changePercent)}
                 </td>
                 <td className="py-4 text-right text-terminal-muted">
                   {stock.marketCap}
                 </td>
                 <td className="py-4 text-right text-terminal-muted">
-                  {stock.peRatio}
+                  {stock.peRatio ?? "—"}
                 </td>
                 <td className="py-4 text-right text-terminal-muted">
-                  {stock.psRatio}
+                  {stock.psRatio ?? "—"}
+                </td>
+                <td className="py-4 text-right text-terminal-muted">
+                  {dataStatusLabel[stock.dataStatus]}
                 </td>
                 <td className="py-4 text-right text-terminal-muted">
                   {stock.riskLevel}

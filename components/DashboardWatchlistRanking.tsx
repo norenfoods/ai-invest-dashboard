@@ -9,6 +9,12 @@ type DashboardWatchlistRankingProps = {
   initialStocks: Stock[];
 };
 
+const formatPrice = (value: number | null): string =>
+  value === null ? "暂无实时价格" : `$${value.toFixed(2)}`;
+
+const formatPercent = (value: number | null): string =>
+  value === null ? "—" : `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
+
 async function fetchWatchlist(symbols: string[], refresh = false): Promise<Stock[]> {
   try {
     const params = new URLSearchParams({ symbols: symbols.join(",") });
@@ -62,7 +68,7 @@ export default function DashboardWatchlistRanking({
   }, []);
 
   const rankedStocks = [...stocks].sort(
-    (a, b) => b.changePercent - a.changePercent,
+    (a, b) => (b.changePercent ?? -Infinity) - (a.changePercent ?? -Infinity),
   );
 
   return (
@@ -86,17 +92,16 @@ export default function DashboardWatchlistRanking({
           </div>
           <div className="text-right">
             <div className="font-semibold text-terminal-text">
-              ${stock.price.toFixed(2)}
+              {formatPrice(stock.price)}
             </div>
             <div
               className={
-                stock.changePercent >= 0
+                (stock.changePercent ?? 0) >= 0
                   ? "text-sm text-terminal-green"
                   : "text-sm text-terminal-red"
               }
             >
-              {stock.changePercent > 0 ? "+" : ""}
-              {stock.changePercent.toFixed(2)}%
+              {formatPercent(stock.changePercent)}
             </div>
           </div>
         </Link>

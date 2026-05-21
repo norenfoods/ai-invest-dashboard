@@ -44,17 +44,17 @@ const buildMockDailyReport = (
   alerts: Alert[],
 ): AIDailyReport => {
   const leaders = [...stocks]
-    .sort((a, b) => b.changePercent - a.changePercent)
+    .sort((a, b) => (b.changePercent ?? -Infinity) - (a.changePercent ?? -Infinity))
     .slice(0, 3);
   const laggards = [...stocks]
-    .sort((a, b) => a.changePercent - b.changePercent)
+    .sort((a, b) => (a.changePercent ?? Infinity) - (b.changePercent ?? Infinity))
     .slice(0, 2);
 
   return {
     marketOverview: `今日市场以 ${indexes.map((item) => `${item.symbol} ${item.changePercent.toFixed(2)}%`).join("、")} 为主要观察对象。自选股表现分化，科技权重仍是组合波动来源。${DISCLAIMER}`,
     watchlistMoves: leaders.map(
       (stock) =>
-        `${stock.symbol} 涨跌幅 ${stock.changePercent.toFixed(2)}%，重点观察 ${stock.sector} 相关预期变化。`,
+        `${stock.symbol} 涨跌幅 ${stock.changePercent?.toFixed(2) ?? "—"}%，重点观察 ${stock.sector} 相关预期变化。`,
     ),
     majorRisks: [
       ...alerts.slice(0, 2).map((alert) => `${alert.title}：${alert.description}`),
