@@ -19,7 +19,7 @@ export default async function PortfolioPage() {
 
       <DataStatusBar />
 
-      <DashboardCard title="持仓管理" eyebrow="Local Portfolio">
+      <DashboardCard title="持仓管理" eyebrow="Cloud Sync · Local Fallback">
         <PortfolioManager initialStocks={initialStocks} />
       </DashboardCard>
     </div>

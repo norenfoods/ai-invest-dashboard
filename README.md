@@ -19,7 +19,8 @@
 - Recharts
 - Financial Modeling Prep API
 - OpenAI Responses API
-- localStorage 本地自选股和持仓存储
+- Supabase Auth + SSR
+- Supabase 云端自选股和持仓同步，未登录时使用 localStorage fallback
 - 内存缓存 simpleCache
 
 ## 本地启动
@@ -55,16 +56,91 @@ cp .env.local.example .env.local
 ```env
 FMP_API_KEY=你的_FMP_API_KEY
 OPENAI_API_KEY=你的_OPENAI_API_KEY
+NEXT_PUBLIC_SUPABASE_URL=你的_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=你的_SUPABASE_PUBLISHABLE_KEY
 ```
 
-两个 key 都是可选的。缺少 key 时项目不会报致命错误，会自动使用 mock fallback。
+FMP 和 OpenAI key 是可选的。缺少 key 时项目不会报致命错误，会自动使用 mock fallback。Supabase 环境变量用于登录、云端自选股和持仓同步；未登录时仍会使用浏览器 localStorage fallback。
+
+## Supabase 建表与 RLS
+
+如果 `watchlists` 和 `positions` 表不存在，请在 Supabase SQL Editor 执行：
+
+```sql
+create table if not exists public.watchlists (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  symbol text not null,
+  created_at timestamptz not null default now(),
+  unique (user_id, symbol)
+);
+
+create table if not exists public.positions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  symbol text not null,
+  shares numeric not null check (shares > 0),
+  avg_cost numeric not null check (avg_cost >= 0),
+  note text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, symbol)
+);
+
+alter table public.watchlists enable row level security;
+alter table public.positions enable row level security;
+
+create policy "watchlists_select_own"
+on public.watchlists for select
+to authenticated
+using (auth.uid() = user_id);
+
+create policy "watchlists_insert_own"
+on public.watchlists for insert
+to authenticated
+with check (auth.uid() = user_id);
+
+create policy "watchlists_update_own"
+on public.watchlists for update
+to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+create policy "watchlists_delete_own"
+on public.watchlists for delete
+to authenticated
+using (auth.uid() = user_id);
+
+create policy "positions_select_own"
+on public.positions for select
+to authenticated
+using (auth.uid() = user_id);
+
+create policy "positions_insert_own"
+on public.positions for insert
+to authenticated
+with check (auth.uid() = user_id);
+
+create policy "positions_update_own"
+on public.positions for update
+to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+create policy "positions_delete_own"
+on public.positions for delete
+to authenticated
+using (auth.uid() = user_id);
+```
 
 ## 数据源说明
 
 - FMP 用于行情、公司资料、财务报表、新闻、指数代理数据
 - OpenAI 用于中文研究摘要和 AI 日报
+- Supabase Auth 使用邮箱 Magic Link 登录
+- 登录后自选股和持仓保存到 Supabase，并通过 RLS 限制用户只能访问自己的数据
 - mock data 用于无 key、API 失败、网络失败或数据缺失时的 fallback
-- 自选股和持仓暂时存储在浏览器 localStorage，不接数据库
+- 未登录时自选股和持仓存储在浏览器 localStorage
 
 ## AI 安全边界
 
@@ -86,6 +162,8 @@ OPENAI_API_KEY=你的_OPENAI_API_KEY
 4. 在 Vercel Project Settings → Environment Variables 添加：
    - `FMP_API_KEY`
    - `OPENAI_API_KEY`
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 5. 点击 Deploy。
 
 部署后如果没有配置 API key，页面仍会使用 mock fallback 正常运行。

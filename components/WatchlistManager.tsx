@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Stock } from "@/lib/mockData";
 import {
-  addWatchlistSymbol,
-  getWatchlistSymbols,
-  removeWatchlistSymbol,
-  resetWatchlist,
+  addWatchlistSymbolSynced,
+  getWatchlistSymbolsSynced,
+  removeWatchlistSymbolSynced,
+  resetWatchlistSynced,
 } from "@/lib/watchlist/watchlistStore";
 
 type WatchlistManagerProps = {
@@ -56,14 +56,17 @@ export default function WatchlistManager({ initialStocks }: WatchlistManagerProp
   );
   const [stocks, setStocks] = useState<Stock[]>(initialStocks);
   const [input, setInput] = useState("");
+  const [syncLabel, setSyncLabel] = useState("本地 fallback 可用");
 
   useEffect(() => {
-    const storedSymbols = getWatchlistSymbols();
-    setSymbols(storedSymbols);
-    void fetchWatchlist(storedSymbols).then((nextStocks) => {
-      if (nextStocks.length) {
-        setStocks(nextStocks);
-      }
+    void getWatchlistSymbolsSynced().then((storedSymbols) => {
+      setSymbols(storedSymbols);
+      setSyncLabel("登录后自动云同步，未登录使用本地 fallback");
+      void fetchWatchlist(storedSymbols).then((nextStocks) => {
+        if (nextStocks.length) {
+          setStocks(nextStocks);
+        }
+      });
     });
   }, []);
 
@@ -73,24 +76,28 @@ export default function WatchlistManager({ initialStocks }: WatchlistManagerProp
   };
 
   useEffect(() => {
-    const handleRefresh = () => refresh(getWatchlistSymbols(), true);
+    const handleRefresh = () => {
+      void getWatchlistSymbolsSynced().then((nextSymbols) =>
+        refresh(nextSymbols, true),
+      );
+    };
     window.addEventListener("app:refresh-data", handleRefresh);
 
     return () => window.removeEventListener("app:refresh-data", handleRefresh);
   }, []);
 
-  const handleAdd = () => {
-    const nextSymbols = addWatchlistSymbol(input);
+  const handleAdd = async () => {
+    const nextSymbols = await addWatchlistSymbolSynced(input);
     setInput("");
     refresh(nextSymbols);
   };
 
-  const handleRemove = (symbol: string) => {
-    refresh(removeWatchlistSymbol(symbol));
+  const handleRemove = async (symbol: string) => {
+    refresh(await removeWatchlistSymbolSynced(symbol));
   };
 
-  const handleReset = () => {
-    refresh(resetWatchlist());
+  const handleReset = async () => {
+    refresh(await resetWatchlistSynced());
   };
 
   return (
@@ -124,7 +131,7 @@ export default function WatchlistManager({ initialStocks }: WatchlistManagerProp
       </div>
 
       <div className="text-xs text-terminal-muted">
-        当前自选股：{symbols.join(", ")}
+        当前自选股：{symbols.join(", ")} · {syncLabel}
       </div>
 
       <div className="overflow-x-auto">

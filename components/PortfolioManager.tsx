@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import MetricCard from "@/components/MetricCard";
 import type { Stock } from "@/lib/mockData";
 import {
-  addOrUpdatePosition,
-  getPositions,
-  removePosition,
-  resetPositions,
+  addOrUpdatePositionSynced,
+  getPositionsSynced,
+  removePositionSynced,
+  resetPositionsSynced,
 } from "@/lib/portfolio/portfolioStore";
 import type { PortfolioPosition } from "@/lib/portfolio/types";
 
@@ -67,18 +67,25 @@ export default function PortfolioManager({ initialStocks }: PortfolioManagerProp
     avgCost: "",
     note: "",
   });
+  const [syncLabel, setSyncLabel] = useState("登录后自动云同步，未登录使用本地 fallback");
 
-  const refresh = (nextPositions = getPositions(), forceRefresh = false) => {
+  const refresh = (nextPositions: PortfolioPosition[], forceRefresh = false) => {
     setPositions(nextPositions);
     const symbols = nextPositions.map((position) => position.symbol);
     void fetchStocks(symbols, forceRefresh).then(setStocks);
   };
 
   useEffect(() => {
-    const handlePortfolioRefresh = () => refresh(getPositions(), false);
-    const handleAppRefresh = () => refresh(getPositions(), true);
+    const refreshFromStore = (forceRefresh = false) => {
+      void getPositionsSynced().then((nextPositions) => {
+        refresh(nextPositions, forceRefresh);
+        setSyncLabel("登录后自动云同步，未登录使用本地 fallback");
+      });
+    };
+    const handlePortfolioRefresh = () => refreshFromStore(false);
+    const handleAppRefresh = () => refreshFromStore(true);
 
-    refresh();
+    refreshFromStore();
     window.addEventListener("app:refresh-data", handleAppRefresh);
     window.addEventListener("portfolio:changed", handlePortfolioRefresh);
     window.addEventListener("storage", handlePortfolioRefresh);
@@ -137,8 +144,8 @@ export default function PortfolioManager({ initialStocks }: PortfolioManagerProp
     return { totalMarketValue, totalCost, totalPnl, totalReturn, maxWeight };
   }, [rows]);
 
-  const handleSubmit = () => {
-    const nextPositions = addOrUpdatePosition({
+  const handleSubmit = async () => {
+    const nextPositions = await addOrUpdatePositionSynced({
       symbol: form.symbol,
       shares: Number(form.shares),
       avgCost: Number(form.avgCost),
@@ -149,12 +156,12 @@ export default function PortfolioManager({ initialStocks }: PortfolioManagerProp
     refresh(nextPositions);
   };
 
-  const handleRemove = (symbol: string) => {
-    refresh(removePosition(symbol));
+  const handleRemove = async (symbol: string) => {
+    refresh(await removePositionSynced(symbol));
   };
 
-  const handleReset = () => {
-    refresh(resetPositions());
+  const handleReset = async () => {
+    refresh(await resetPositionsSynced());
   };
 
   return (
@@ -221,6 +228,8 @@ export default function PortfolioManager({ initialStocks }: PortfolioManagerProp
           清空
         </button>
       </div>
+
+      <div className="text-xs text-terminal-muted">{syncLabel}</div>
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1100px] border-collapse text-left">

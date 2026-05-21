@@ -19,7 +19,7 @@ export default async function WatchlistPage() {
 
       <DataStatusBar />
 
-      <DashboardCard title="自选股列表" eyebrow="AAPL · MSFT · NVDA · AMZN · GOOGL · META · TSLA">
+      <DashboardCard title="自选股列表" eyebrow="Cloud Sync · Local Fallback">
         <WatchlistManager initialStocks={watchlistStocks} />
       </DashboardCard>
     </div>
