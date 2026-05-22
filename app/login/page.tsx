@@ -14,6 +14,24 @@ const isFailedToFetchError = (error: unknown): boolean =>
 const isEmailRateLimitError = (message: string): boolean =>
   message.toLowerCase().includes("email rate limit exceeded");
 
+const getSafeNextPath = (): string => {
+  if (typeof window === "undefined") {
+    return "/";
+  }
+
+  const next = new URLSearchParams(window.location.search).get("next") ?? "/";
+
+  if (!next.startsWith("/") || next.startsWith("//")) {
+    return "/";
+  }
+
+  if (next.startsWith("/login")) {
+    return "/";
+  }
+
+  return next;
+};
+
 export default function LoginPage() {
   const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
   const [email, setEmail] = useState("");
@@ -37,10 +55,13 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient();
+      const nextPath = getSafeNextPath();
+      const callbackUrl = new URL("/auth/callback", window.location.origin);
+      callbackUrl.searchParams.set("next", nextPath);
       const { error: signInError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: callbackUrl.toString(),
         },
       });
 
@@ -183,10 +204,10 @@ export default function LoginPage() {
         ) : null}
 
         <Link
-          href="/"
+          href={getSafeNextPath()}
           className="mt-5 inline-flex text-sm text-terminal-muted hover:text-terminal-text"
         >
-          返回 Dashboard
+          返回上一页
         </Link>
       </div>
     </div>

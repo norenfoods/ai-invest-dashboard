@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
@@ -55,6 +54,12 @@ export default function AuthButton() {
     router.push("/login");
   };
 
+  const handleGoToLogin = () => {
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+    const nextPath = currentPath.startsWith("/login") ? "/" : currentPath;
+    router.push(`/login?next=${encodeURIComponent(nextPath)}`);
+  };
+
   if (isLoading) {
     return (
       <span className="rounded border border-terminal-border bg-terminal-panel px-3 py-2 text-sm text-terminal-muted">
@@ -65,12 +70,13 @@ export default function AuthButton() {
 
   if (!user) {
     return (
-      <Link
-        href="/login"
+      <button
+        type="button"
+        onClick={handleGoToLogin}
         className="rounded border border-terminal-cyan/40 bg-terminal-panelSoft px-3 py-2 text-sm text-terminal-cyan transition hover:border-terminal-cyan"
       >
         登录
-      </Link>
+      </button>
     );
   }
 
