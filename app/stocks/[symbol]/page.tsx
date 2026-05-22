@@ -45,10 +45,30 @@ const alertTypeLabel = {
   highRiskHolding: "高风险持仓",
 };
 
-const dataStatusLabel = {
-  live: "实时数据",
-  fallback: "使用 fallback",
-  missing: "数据缺失",
+const dataSourceLabel = {
+  fmp: "FMP 实时",
+  yahoo: "Yahoo 备用",
+  mock: "Mock 模拟",
+  none: "数据缺失",
+};
+
+const getDataSourceLabel = (stock: {
+  dataStatus: "live" | "fallback" | "missing";
+  dataSource?: "fmp" | "yahoo" | "mock" | "none";
+}): string => {
+  if (stock.dataSource) {
+    return dataSourceLabel[stock.dataSource];
+  }
+
+  if (stock.dataStatus === "live") {
+    return dataSourceLabel.fmp;
+  }
+
+  if (stock.dataStatus === "fallback") {
+    return dataSourceLabel.mock;
+  }
+
+  return dataSourceLabel.none;
 };
 
 const formatPrice = (value: number | null): string =>
@@ -85,7 +105,7 @@ export default async function StockDetailPage({ params }: StockDetailPageProps) 
           </h1>
         </div>
         <div className="rounded border border-terminal-border bg-terminal-panel px-4 py-2 text-sm text-terminal-muted">
-          {stock.sector} · {stock.industry} · {dataStatusLabel[stock.dataStatus]}
+          {stock.sector} · {stock.industry} · {getDataSourceLabel(stock)}
         </div>
       </div>
 

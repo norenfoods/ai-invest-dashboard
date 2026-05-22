@@ -132,8 +132,8 @@ export function evaluatePortfolioAlerts(
   const positionRows = positions
     .map((position) => {
       const stock = stockMap.get(position.symbol);
-      const price = stock?.price ?? 0;
-      const marketValue = position.shares * price;
+      const price = stock?.price ?? null;
+      const marketValue = price === null ? null : position.shares * price;
       const cost = position.shares * position.avgCost;
 
       return {
@@ -143,17 +143,21 @@ export function evaluatePortfolioAlerts(
         cost,
       };
     })
-    .filter((row) => row.marketValue > 0 || row.cost > 0);
+    .filter((row) => row.marketValue !== null || row.cost > 0);
+  const pricedRows = positionRows.filter((row) => row.marketValue !== null);
+  const allPricesAvailable =
+    positionRows.length > 0 &&
+    positionRows.every((row) => row.marketValue !== null);
 
-  const totalMarketValue = positionRows.reduce(
-    (sum, row) => sum + row.marketValue,
+  const totalMarketValue = pricedRows.reduce(
+    (sum, row) => sum + (row.marketValue ?? 0),
     0,
   );
-  const totalCost = positionRows.reduce((sum, row) => sum + row.cost, 0);
+  const totalCost = pricedRows.reduce((sum, row) => sum + row.cost, 0);
 
   if (totalMarketValue > 0) {
-    for (const row of positionRows) {
-      const weight = row.marketValue / totalMarketValue;
+    for (const row of pricedRows) {
+      const weight = (row.marketValue ?? 0) / totalMarketValue;
 
       if (weight > 0.3) {
         const stock = row.stock ?? {
@@ -174,7 +178,7 @@ export function evaluatePortfolioAlerts(
     }
   }
 
-  if (totalCost > 0) {
+  if (allPricesAvailable && totalCost > 0) {
     const returnRate = (totalMarketValue - totalCost) / totalCost;
 
     if (returnRate < -0.1) {

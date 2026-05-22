@@ -1,5 +1,6 @@
 import { getCache, setCache } from "@/lib/cache/simpleCache";
 import { getFmpApiKey } from "@/lib/env";
+import { getYahooQuote } from "@/lib/api/yahoo";
 import { watchlistStocks } from "@/lib/mockData";
 
 const FMP_BASE_URL = "https://financialmodelingprep.com/stable";
@@ -21,6 +22,7 @@ export type FmpQuote = {
   pe?: number | null;
   psRatio?: number | null;
   dataStatus?: "live" | "fallback" | "missing";
+  dataSource?: "fmp" | "yahoo" | "mock" | "none";
 };
 
 export type FmpCompanyProfile = {
@@ -114,6 +116,7 @@ const findMockQuote = (symbol: string): FmpQuote | null => {
     pe: mock.peRatio,
     psRatio: mock.psRatio,
     dataStatus: "fallback",
+    dataSource: "mock",
   };
 };
 
@@ -127,7 +130,24 @@ const createMissingQuote = (symbol: string): FmpQuote => ({
   pe: null,
   psRatio: null,
   dataStatus: "missing",
+  dataSource: "none",
 });
+
+const hasValidPrice = (quote: Pick<FmpQuote, "price"> | undefined): boolean =>
+  typeof quote?.price === "number" && Number.isFinite(quote.price);
+
+const resolveFallbackQuote = async (
+  symbol: string,
+  forceRefresh: boolean,
+): Promise<FmpQuote> => {
+  const yahooQuote = await getYahooQuote(symbol, forceRefresh);
+
+  if (yahooQuote) {
+    return yahooQuote;
+  }
+
+  return findMockQuote(symbol) ?? createMissingQuote(symbol);
+};
 
 async function fmpFetch<T>(
   path: string,
@@ -217,13 +237,13 @@ export async function getQuote(
     }
 
     if (!apiKey) {
-      const fallback = findMockQuote(normalizedSymbol) ?? createMissingQuote(normalizedSymbol);
+      const fallback = await resolveFallbackQuote(normalizedSymbol, forceRefresh);
       createQuoteLog(
         normalizedSymbol,
         url.toString(),
         "not_requested",
         "unknown",
-        fallback.dataStatus === "fallback" ? "missing_api_key_mock_fallback" : "missing_api_key_no_mock",
+        `missing_api_key_${fallback.dataSource}_fallback`,
       );
       setCache(cacheKey, fallback, QUOTE_TTL);
       return fallback;
@@ -237,13 +257,13 @@ export async function getQuote(
     });
 
     if (!response.ok) {
-      const fallback = findMockQuote(normalizedSymbol) ?? createMissingQuote(normalizedSymbol);
+      const fallback = await resolveFallbackQuote(normalizedSymbol, forceRefresh);
       createQuoteLog(
         normalizedSymbol,
         requestUrl,
         response.status,
         "unknown",
-        fallback.dataStatus === "fallback" ? "http_error_mock_fallback" : "http_error_no_mock",
+        `http_error_${fallback.dataSource}_fallback`,
       );
       setCache(cacheKey, fallback, QUOTE_TTL);
       return fallback;
@@ -253,13 +273,26 @@ export async function getQuote(
     const emptyArray = data.length === 0;
 
     if (emptyArray) {
-      const fallback = findMockQuote(normalizedSymbol) ?? createMissingQuote(normalizedSymbol);
+      const fallback = await resolveFallbackQuote(normalizedSymbol, forceRefresh);
       createQuoteLog(
         normalizedSymbol,
         requestUrl,
         response.status,
         true,
-        fallback.dataStatus === "fallback" ? "empty_quote_mock_fallback" : "empty_quote_no_mock",
+        `empty_quote_${fallback.dataSource}_fallback`,
+      );
+      setCache(cacheKey, fallback, QUOTE_TTL);
+      return fallback;
+    }
+
+    if (!hasValidPrice(data[0])) {
+      const fallback = await resolveFallbackQuote(normalizedSymbol, forceRefresh);
+      createQuoteLog(
+        normalizedSymbol,
+        requestUrl,
+        response.status,
+        false,
+        `missing_price_${fallback.dataSource}_fallback`,
       );
       setCache(cacheKey, fallback, QUOTE_TTL);
       return fallback;
@@ -269,19 +302,20 @@ export async function getQuote(
       ...data[0],
       symbol: data[0]?.symbol ?? normalizedSymbol,
       dataStatus: "live",
+      dataSource: "fmp",
     };
 
     createQuoteLog(normalizedSymbol, requestUrl, response.status, false, "none");
     setCache(cacheKey, quote, QUOTE_TTL);
     return quote;
   } catch {
-    const fallback = findMockQuote(normalizedSymbol) ?? createMissingQuote(normalizedSymbol);
+    const fallback = await resolveFallbackQuote(normalizedSymbol, forceRefresh);
     createQuoteLog(
       normalizedSymbol,
       url.toString(),
       "error",
       "unknown",
-      fallback.dataStatus === "fallback" ? "exception_mock_fallback" : "exception_no_mock",
+      `exception_${fallback.dataSource}_fallback`,
     );
     setCache(cacheKey, fallback, QUOTE_TTL);
     return fallback;

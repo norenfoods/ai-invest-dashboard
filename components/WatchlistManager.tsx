@@ -14,10 +14,27 @@ type WatchlistManagerProps = {
   initialStocks: Stock[];
 };
 
-const dataStatusLabel = {
-  live: "实时",
-  fallback: "模拟",
-  missing: "缺失",
+const dataSourceLabel = {
+  fmp: "FMP 实时",
+  yahoo: "Yahoo 备用",
+  mock: "Mock 模拟",
+  none: "数据缺失",
+};
+
+const getDataSourceLabel = (stock: Stock): string => {
+  if (stock.dataSource) {
+    return dataSourceLabel[stock.dataSource];
+  }
+
+  if (stock.dataStatus === "live") {
+    return dataSourceLabel.fmp;
+  }
+
+  if (stock.dataStatus === "fallback") {
+    return dataSourceLabel.mock;
+  }
+
+  return dataSourceLabel.none;
 };
 
 const formatPrice = (value: number | null): string =>
@@ -147,7 +164,7 @@ export default function WatchlistManager({ initialStocks }: WatchlistManagerProp
               <th className="pb-3 text-right font-medium">市值</th>
               <th className="pb-3 text-right font-medium">PE</th>
               <th className="pb-3 text-right font-medium">PS</th>
-              <th className="pb-3 text-right font-medium">数据状态</th>
+              <th className="pb-3 text-right font-medium">数据来源</th>
               <th className="pb-3 text-right font-medium">风险</th>
               <th className="pb-3 text-right font-medium">操作</th>
             </tr>
@@ -191,7 +208,7 @@ export default function WatchlistManager({ initialStocks }: WatchlistManagerProp
                   {stock.psRatio ?? "—"}
                 </td>
                 <td className="py-4 text-right text-terminal-muted">
-                  {dataStatusLabel[stock.dataStatus]}
+                  {getDataSourceLabel(stock)}
                 </td>
                 <td className="py-4 text-right text-terminal-muted">
                   {stock.riskLevel}

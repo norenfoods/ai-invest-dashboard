@@ -18,12 +18,12 @@ type PortfolioManagerProps = {
 type PortfolioRow = {
   position: PortfolioPosition;
   stock: Stock | undefined;
-  currentPrice: number;
-  marketValue: number;
+  currentPrice: number | null;
+  marketValue: number | null;
   cost: number;
-  pnl: number;
-  pnlPercent: number;
-  weight: number;
+  pnl: number | null;
+  pnlPercent: number | null;
+  weight: number | null;
 };
 
 const currency = (value: number): string =>
@@ -33,6 +33,41 @@ const currency = (value: number): string =>
   })}`;
 
 const percent = (value: number): string => `${value.toFixed(2)}%`;
+
+const calculable = "无法计算";
+
+const formatNullableCurrency = (value: number | null): string =>
+  value === null ? calculable : currency(value);
+
+const formatNullablePercent = (value: number | null): string =>
+  value === null ? calculable : percent(value);
+
+const dataSourceLabel = {
+  fmp: "FMP 实时",
+  yahoo: "Yahoo 备用",
+  mock: "Mock 模拟",
+  none: "数据缺失",
+};
+
+const getDataSourceLabel = (stock: Stock | undefined): string => {
+  if (!stock) {
+    return dataSourceLabel.none;
+  }
+
+  if (stock.dataSource) {
+    return dataSourceLabel[stock.dataSource];
+  }
+
+  if (stock.dataStatus === "live") {
+    return dataSourceLabel.fmp;
+  }
+
+  if (stock.dataStatus === "fallback") {
+    return dataSourceLabel.mock;
+  }
+
+  return dataSourceLabel.none;
+};
 
 async function fetchStocks(symbols: string[], refresh = false): Promise<Stock[]> {
   try {
@@ -105,11 +140,12 @@ export default function PortfolioManager({ initialStocks }: PortfolioManagerProp
   const rows = useMemo<PortfolioRow[]>(() => {
     const baseRows = positions.map((position) => {
       const stock = stockMap.get(position.symbol);
-      const currentPrice = stock?.price ?? 0;
-      const marketValue = position.shares * currentPrice;
+      const currentPrice = stock?.price ?? null;
+      const marketValue =
+        currentPrice === null ? null : position.shares * currentPrice;
       const cost = position.shares * position.avgCost;
-      const pnl = marketValue - cost;
-      const pnlPercent = cost > 0 ? (pnl / cost) * 100 : 0;
+      const pnl = marketValue === null ? null : marketValue - cost;
+      const pnlPercent = pnl === null || cost <= 0 ? null : (pnl / cost) * 100;
 
       return {
         position,
@@ -124,22 +160,32 @@ export default function PortfolioManager({ initialStocks }: PortfolioManagerProp
     });
 
     const totalMarketValue = baseRows.reduce(
-      (sum, row) => sum + row.marketValue,
+      (sum, row) => sum + (row.marketValue ?? 0),
       0,
     );
 
     return baseRows.map((row) => ({
       ...row,
-      weight: totalMarketValue > 0 ? (row.marketValue / totalMarketValue) * 100 : 0,
+      weight:
+        totalMarketValue > 0 && row.marketValue !== null
+          ? (row.marketValue / totalMarketValue) * 100
+          : null,
     }));
   }, [positions, stockMap]);
 
   const summary = useMemo(() => {
-    const totalMarketValue = rows.reduce((sum, row) => sum + row.marketValue, 0);
-    const totalCost = rows.reduce((sum, row) => sum + row.cost, 0);
+    const pricedRows = rows.filter((row) => row.marketValue !== null);
+    const totalMarketValue = pricedRows.reduce(
+      (sum, row) => sum + (row.marketValue ?? 0),
+      0,
+    );
+    const totalCost = pricedRows.reduce((sum, row) => sum + row.cost, 0);
     const totalPnl = totalMarketValue - totalCost;
     const totalReturn = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0;
-    const maxWeight = rows.reduce((max, row) => Math.max(max, row.weight), 0);
+    const maxWeight = pricedRows.reduce(
+      (max, row) => Math.max(max, row.weight ?? 0),
+      0,
+    );
 
     return { totalMarketValue, totalCost, totalPnl, totalReturn, maxWeight };
   }, [rows]);
@@ -239,6 +285,7 @@ export default function PortfolioManager({ initialStocks }: PortfolioManagerProp
               <th className="pb-3 text-right font-medium">持仓股数</th>
               <th className="pb-3 text-right font-medium">成本价</th>
               <th className="pb-3 text-right font-medium">当前价</th>
+              <th className="pb-3 text-right font-medium">数据来源</th>
               <th className="pb-3 text-right font-medium">市值</th>
               <th className="pb-3 text-right font-medium">浮动盈亏</th>
               <th className="pb-3 text-right font-medium">盈亏百分比</th>
@@ -268,29 +315,38 @@ export default function PortfolioManager({ initialStocks }: PortfolioManagerProp
                   {currency(row.position.avgCost)}
                 </td>
                 <td className="py-4 text-right text-terminal-text">
-                  {row.stock?.price === null ? "暂无实时价格" : currency(row.currentPrice)}
-                </td>
-                <td className="py-4 text-right text-terminal-text">
-                  {currency(row.marketValue)}
-                </td>
-                <td
-                  className={`py-4 text-right font-medium ${
-                    row.pnl >= 0 ? "text-terminal-green" : "text-terminal-red"
-                  }`}
-                >
-                  {currency(row.pnl)}
-                </td>
-                <td
-                  className={`py-4 text-right font-medium ${
-                    row.pnlPercent >= 0
-                      ? "text-terminal-green"
-                      : "text-terminal-red"
-                  }`}
-                >
-                  {percent(row.pnlPercent)}
+                  {row.currentPrice === null ? "暂无实时价格" : currency(row.currentPrice)}
                 </td>
                 <td className="py-4 text-right text-terminal-muted">
-                  {percent(row.weight)}
+                  {getDataSourceLabel(row.stock)}
+                </td>
+                <td className="py-4 text-right text-terminal-text">
+                  {formatNullableCurrency(row.marketValue)}
+                </td>
+                <td
+                  className={`py-4 text-right font-medium ${
+                    row.pnl === null
+                      ? "text-terminal-muted"
+                      : row.pnl >= 0
+                        ? "text-terminal-green"
+                        : "text-terminal-red"
+                  }`}
+                >
+                  {formatNullableCurrency(row.pnl)}
+                </td>
+                <td
+                  className={`py-4 text-right font-medium ${
+                    row.pnlPercent === null
+                      ? "text-terminal-muted"
+                      : row.pnlPercent >= 0
+                        ? "text-terminal-green"
+                        : "text-terminal-red"
+                  }`}
+                >
+                  {formatNullablePercent(row.pnlPercent)}
+                </td>
+                <td className="py-4 text-right text-terminal-muted">
+                  {formatNullablePercent(row.weight)}
                 </td>
                 <td className="py-4 text-right text-terminal-muted">
                   {row.stock?.riskLevel ?? "中"}

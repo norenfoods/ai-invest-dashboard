@@ -21,6 +21,7 @@ export type Stock = {
   aiSummary: string;
   riskLevel: "高" | "中" | "低";
   dataStatus: "live" | "fallback" | "missing";
+  dataSource?: "fmp" | "yahoo" | "mock" | "none";
   news: StockNews[];
   chart: TrendPoint[];
 };

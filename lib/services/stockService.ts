@@ -110,6 +110,7 @@ const createFallbackStock = (symbol: string): Stock => {
     aiSummary: "暂无 mock 摘要，等待真实数据补充。",
     riskLevel: "中",
     dataStatus: "missing",
+    dataSource: "none",
     news: [
       {
         id: `${normalized}-mock-news`,
@@ -176,6 +177,7 @@ async function mergeStockData(
       industry: profile?.industry ?? mock.industry,
       news: mapNews(news, mock.news),
       dataStatus: quote?.dataStatus ?? mock.dataStatus,
+      dataSource: quote?.dataSource ?? mock.dataSource ?? "mock",
     };
   } catch {
     return mock;
