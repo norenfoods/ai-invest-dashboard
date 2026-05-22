@@ -22,6 +22,7 @@ export type Stock = {
   riskLevel: "高" | "中" | "低";
   dataStatus: "live" | "fallback" | "missing";
   dataSource?: "fmp" | "yahoo" | "mock" | "none";
+  fundamentalsDataSource?: "fmp" | "mock" | "missing";
   news: StockNews[];
   chart: TrendPoint[];
 };

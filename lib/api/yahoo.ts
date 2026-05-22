@@ -4,13 +4,10 @@ const YAHOO_QUOTE_TTL = 60_000;
 
 export type YahooQuote = {
   symbol: string;
-  name?: string;
   price: number | null;
+  previousClose: number | null;
   change: number | null;
   changesPercentage: number | null;
-  marketCap: number | null;
-  pe: number | null;
-  psRatio: number | null;
   dataStatus: "fallback";
   dataSource: "yahoo";
 };
@@ -89,13 +86,10 @@ export async function getYahooQuote(
         : null;
     const quote: YahooQuote = {
       symbol: meta?.symbol ? normalizeSymbol(meta.symbol) : normalizedSymbol,
-      name: normalizedSymbol,
       price,
+      previousClose,
       change,
       changesPercentage,
-      marketCap: null,
-      pe: null,
-      psRatio: null,
       dataStatus: "fallback",
       dataSource: "yahoo",
     };

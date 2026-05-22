@@ -15,10 +15,16 @@ type WatchlistManagerProps = {
 };
 
 const dataSourceLabel = {
-  fmp: "FMP 实时",
-  yahoo: "Yahoo 备用",
-  mock: "Mock 模拟",
-  none: "数据缺失",
+  fmp: "FMP",
+  yahoo: "Yahoo",
+  mock: "Mock",
+  none: "Missing",
+};
+
+const fundamentalsSourceLabel = {
+  fmp: "FMP",
+  mock: "Mock",
+  missing: "Missing",
 };
 
 const getDataSourceLabel = (stock: Stock): string => {
@@ -36,6 +42,9 @@ const getDataSourceLabel = (stock: Stock): string => {
 
   return dataSourceLabel.none;
 };
+
+const getFundamentalsSourceLabel = (stock: Stock): string =>
+  fundamentalsSourceLabel[stock.fundamentalsDataSource ?? "mock"];
 
 const formatPrice = (value: number | null): string =>
   value === null ? "暂无实时价格" : `$${value.toFixed(2)}`;
@@ -164,7 +173,8 @@ export default function WatchlistManager({ initialStocks }: WatchlistManagerProp
               <th className="pb-3 text-right font-medium">市值</th>
               <th className="pb-3 text-right font-medium">PE</th>
               <th className="pb-3 text-right font-medium">PS</th>
-              <th className="pb-3 text-right font-medium">数据来源</th>
+              <th className="pb-3 text-right font-medium">价格来源</th>
+              <th className="pb-3 text-right font-medium">基本面来源</th>
               <th className="pb-3 text-right font-medium">风险</th>
               <th className="pb-3 text-right font-medium">操作</th>
             </tr>
@@ -202,13 +212,16 @@ export default function WatchlistManager({ initialStocks }: WatchlistManagerProp
                   {stock.marketCap}
                 </td>
                 <td className="py-4 text-right text-terminal-muted">
-                  {stock.peRatio ?? "—"}
+                  {stock.peRatio ?? "暂无数据"}
                 </td>
                 <td className="py-4 text-right text-terminal-muted">
-                  {stock.psRatio ?? "—"}
+                  {stock.psRatio ?? "暂无数据"}
                 </td>
                 <td className="py-4 text-right text-terminal-muted">
                   {getDataSourceLabel(stock)}
+                </td>
+                <td className="py-4 text-right text-terminal-muted">
+                  {getFundamentalsSourceLabel(stock)}
                 </td>
                 <td className="py-4 text-right text-terminal-muted">
                   {stock.riskLevel}

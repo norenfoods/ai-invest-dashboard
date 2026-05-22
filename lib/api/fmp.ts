@@ -16,6 +16,7 @@ export type FmpQuote = {
   symbol?: string;
   name?: string;
   price?: number | null;
+  previousClose?: number | null;
   change?: number | null;
   changesPercentage?: number | null;
   marketCap?: number | null;
@@ -113,8 +114,8 @@ const findMockQuote = (symbol: string): FmpQuote | null => {
     change: mock.change,
     changesPercentage: mock.changePercent,
     marketCap: null,
-    pe: mock.peRatio,
-    psRatio: mock.psRatio,
+    pe: null,
+    psRatio: null,
     dataStatus: "fallback",
     dataSource: "mock",
   };

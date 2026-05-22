@@ -70,12 +70,17 @@ export default function PortfolioSummaryCard({
 
   const summary = useMemo(() => {
     const stockMap = new Map(stocks.map((stock) => [stock.symbol, stock]));
-    const rows = positions.map((position) => {
-      const price = stockMap.get(position.symbol)?.price ?? 0;
+    const rows = positions.flatMap((position) => {
+      const price = stockMap.get(position.symbol)?.price ?? null;
+
+      if (price === null) {
+        return [];
+      }
+
       const marketValue = position.shares * price;
       const cost = position.shares * position.avgCost;
 
-      return { marketValue, cost };
+      return [{ marketValue, cost }];
     });
     const totalValue = rows.reduce((sum, row) => sum + row.marketValue, 0);
     const totalCost = rows.reduce((sum, row) => sum + row.cost, 0);

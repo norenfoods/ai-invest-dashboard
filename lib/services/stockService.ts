@@ -89,6 +89,8 @@ const mapNews = (news: FmpStockNews[], fallback: StockNews[]): StockNews[] => {
 const normalizeSymbol = (symbol: string): string =>
   symbol.trim().replace(/\s+/g, "").toUpperCase();
 
+const missingFundamental = "暂无数据";
+
 const createFallbackStock = (symbol: string): Stock => {
   const normalized = normalizeSymbol(symbol);
 
@@ -98,7 +100,7 @@ const createFallbackStock = (symbol: string): Stock => {
     price: null,
     change: null,
     changePercent: null,
-    marketCap: "N/A",
+    marketCap: missingFundamental,
     peRatio: null,
     psRatio: null,
     revenueGrowth: null,
@@ -111,6 +113,7 @@ const createFallbackStock = (symbol: string): Stock => {
     riskLevel: "中",
     dataStatus: "missing",
     dataSource: "none",
+    fundamentalsDataSource: "missing",
     news: [
       {
         id: `${normalized}-mock-news`,
@@ -145,10 +148,24 @@ async function mergeStockData(
     }
 
     const latestStatement = incomeStatement[0];
-    const marketCap = quote?.marketCap ?? profile?.marketCap ?? profile?.mktCap;
+    const quoteSource = quote?.dataSource ?? mock.dataSource ?? "mock";
+    const hasFmpProfile = Boolean(profile);
+    const canUseMockFundamentals = quoteSource === "mock";
+    const rawMarketCap = profile?.marketCap ?? profile?.mktCap ?? null;
     const revenue = latestStatement?.revenue;
+    const netIncome = latestStatement?.netIncome;
     const psRatio =
-      marketCap && revenue ? Number((marketCap / revenue).toFixed(1)) : null;
+      rawMarketCap && revenue ? Number((rawMarketCap / revenue).toFixed(1)) : null;
+    const peRatio =
+      rawMarketCap && netIncome && netIncome > 0
+        ? Number((rawMarketCap / netIncome).toFixed(1))
+        : null;
+    const fundamentalsDataSource =
+      hasFmpProfile || incomeStatement.length > 0
+        ? "fmp"
+        : canUseMockFundamentals
+          ? "mock"
+          : "missing";
     const grossMargin = calculateMargin(
       latestStatement?.grossProfit,
       latestStatement?.revenue,
@@ -160,24 +177,30 @@ async function mergeStockData(
 
     return {
       ...mock,
-      companyName: profile?.companyName ?? quote?.name ?? mock.companyName,
+      companyName:
+        profile?.companyName ??
+        (quoteSource === "mock" ? quote?.name : null) ??
+        mock.companyName,
       price:
         quote?.dataStatus === "missing"
           ? null
           : quote?.price ?? profile?.price ?? mock.price,
       change: quote?.change ?? mock.change,
       changePercent: quote?.changesPercentage ?? mock.changePercent,
-      marketCap: formatMarketCap(marketCap) ?? mock.marketCap,
-      peRatio: quote?.pe ?? mock.peRatio,
-      psRatio: quote?.psRatio ?? psRatio ?? mock.psRatio,
+      marketCap:
+        formatMarketCap(rawMarketCap) ??
+        (canUseMockFundamentals ? mock.marketCap : missingFundamental),
+      peRatio: peRatio ?? (canUseMockFundamentals ? mock.peRatio : null),
+      psRatio: psRatio ?? (canUseMockFundamentals ? mock.psRatio : null),
       revenueGrowth: calculateRevenueGrowth(incomeStatement) ?? mock.revenueGrowth,
       grossMargin: grossMargin ?? mock.grossMargin,
       netMargin: netMargin ?? mock.netMargin,
-      sector: profile?.sector ?? mock.sector,
-      industry: profile?.industry ?? mock.industry,
+      sector: profile?.sector ?? (canUseMockFundamentals ? mock.sector : "待确认"),
+      industry: profile?.industry ?? (canUseMockFundamentals ? mock.industry : "待确认"),
       news: mapNews(news, mock.news),
       dataStatus: quote?.dataStatus ?? mock.dataStatus,
-      dataSource: quote?.dataSource ?? mock.dataSource ?? "mock",
+      dataSource: quoteSource,
+      fundamentalsDataSource,
     };
   } catch {
     return mock;

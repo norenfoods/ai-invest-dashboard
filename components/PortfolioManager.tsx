@@ -43,10 +43,16 @@ const formatNullablePercent = (value: number | null): string =>
   value === null ? calculable : percent(value);
 
 const dataSourceLabel = {
-  fmp: "FMP 实时",
-  yahoo: "Yahoo 备用",
-  mock: "Mock 模拟",
-  none: "数据缺失",
+  fmp: "FMP",
+  yahoo: "Yahoo",
+  mock: "Mock",
+  none: "Missing",
+};
+
+const fundamentalsSourceLabel = {
+  fmp: "FMP",
+  mock: "Mock",
+  missing: "Missing",
 };
 
 const getDataSourceLabel = (stock: Stock | undefined): string => {
@@ -68,6 +74,9 @@ const getDataSourceLabel = (stock: Stock | undefined): string => {
 
   return dataSourceLabel.none;
 };
+
+const getFundamentalsSourceLabel = (stock: Stock | undefined): string =>
+  fundamentalsSourceLabel[stock?.fundamentalsDataSource ?? "missing"];
 
 async function fetchStocks(symbols: string[], refresh = false): Promise<Stock[]> {
   try {
@@ -285,7 +294,8 @@ export default function PortfolioManager({ initialStocks }: PortfolioManagerProp
               <th className="pb-3 text-right font-medium">持仓股数</th>
               <th className="pb-3 text-right font-medium">成本价</th>
               <th className="pb-3 text-right font-medium">当前价</th>
-              <th className="pb-3 text-right font-medium">数据来源</th>
+              <th className="pb-3 text-right font-medium">价格来源</th>
+              <th className="pb-3 text-right font-medium">基本面来源</th>
               <th className="pb-3 text-right font-medium">市值</th>
               <th className="pb-3 text-right font-medium">浮动盈亏</th>
               <th className="pb-3 text-right font-medium">盈亏百分比</th>
@@ -319,6 +329,9 @@ export default function PortfolioManager({ initialStocks }: PortfolioManagerProp
                 </td>
                 <td className="py-4 text-right text-terminal-muted">
                   {getDataSourceLabel(row.stock)}
+                </td>
+                <td className="py-4 text-right text-terminal-muted">
+                  {getFundamentalsSourceLabel(row.stock)}
                 </td>
                 <td className="py-4 text-right text-terminal-text">
                   {formatNullableCurrency(row.marketValue)}

@@ -46,10 +46,16 @@ const alertTypeLabel = {
 };
 
 const dataSourceLabel = {
-  fmp: "FMP 实时",
-  yahoo: "Yahoo 备用",
-  mock: "Mock 模拟",
-  none: "数据缺失",
+  fmp: "FMP",
+  yahoo: "Yahoo",
+  mock: "Mock",
+  none: "Missing",
+};
+
+const fundamentalsSourceLabel = {
+  fmp: "FMP",
+  mock: "Mock",
+  missing: "Missing",
 };
 
 const getDataSourceLabel = (stock: {
@@ -71,11 +77,15 @@ const getDataSourceLabel = (stock: {
   return dataSourceLabel.none;
 };
 
+const getFundamentalsSourceLabel = (stock: {
+  fundamentalsDataSource?: "fmp" | "mock" | "missing";
+}): string => fundamentalsSourceLabel[stock.fundamentalsDataSource ?? "mock"];
+
 const formatPrice = (value: number | null): string =>
   value === null ? "暂无实时价格" : `$${value.toFixed(2)}`;
 
 const formatNumber = (value: number | null): string =>
-  value === null ? "—" : value.toString();
+  value === null ? "暂无数据" : value.toString();
 
 const formatPercent = (value: number | null): string =>
   value === null ? "—" : `${value.toFixed(1)}%`;
@@ -105,7 +115,7 @@ export default async function StockDetailPage({ params }: StockDetailPageProps) 
           </h1>
         </div>
         <div className="rounded border border-terminal-border bg-terminal-panel px-4 py-2 text-sm text-terminal-muted">
-          {stock.sector} · {stock.industry} · {getDataSourceLabel(stock)}
+          {stock.sector} · {stock.industry} · 价格来源：{getDataSourceLabel(stock)} · 基本面来源：{getFundamentalsSourceLabel(stock)}
         </div>
       </div>
 
