@@ -4,16 +4,24 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+const isFailedToFetchError = (error: unknown): boolean =>
+  error instanceof TypeError && String(error.message).includes("Failed to fetch");
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [errorMessages, setErrorMessages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const currentOrigin =
+    typeof window === "undefined" ? "浏览器加载后显示" : window.location.origin;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage("");
-    setError("");
+    setErrorMessages([]);
     setIsSubmitting(true);
 
     try {
@@ -26,13 +34,31 @@ export default function LoginPage() {
       });
 
       if (signInError) {
-        setError("登录链接发送失败，请稍后重试。");
+        console.error("Supabase signInWithOtp error:", signInError);
+        setErrorMessages(
+          [
+            signInError.message
+              ? `error.message: ${signInError.message}`
+              : "error.message: 无",
+            "name" in signInError && signInError.name
+              ? `error.name: ${signInError.name}`
+              : null,
+          ].filter((item): item is string => Boolean(item)),
+        );
         return;
       }
 
       setMessage("登录链接已发送，请检查邮箱");
-    } catch {
-      setError("Supabase 登录服务暂不可用，请检查环境变量配置。");
+    } catch (error) {
+      console.error("Supabase signInWithOtp exception:", error);
+      setErrorMessages([
+        `exception: ${String(error)}`,
+        ...(isFailedToFetchError(error)
+          ? [
+              "浏览器无法连接 Supabase Auth 接口，优先检查 Supabase URL、Vercel 环境变量、网络和浏览器插件。",
+            ]
+          : []),
+      ]);
     } finally {
       setIsSubmitting(false);
     }
@@ -79,11 +105,29 @@ export default function LoginPage() {
           </div>
         ) : null}
 
-        {error ? (
+        {errorMessages.length ? (
           <div className="mt-4 rounded-md border border-terminal-red/35 bg-terminal-panelSoft/55 p-3 text-sm text-terminal-red">
-            {error}
+            <div className="font-medium">登录诊断信息</div>
+            <div className="mt-2 space-y-1 break-words">
+              {errorMessages.map((item) => (
+                <div key={item}>{item}</div>
+              ))}
+            </div>
           </div>
         ) : null}
+
+        <div className="mt-5 rounded-md border border-terminal-border bg-terminal-bg/70 p-3 text-xs leading-6 text-terminal-muted">
+          <div className="text-terminal-cyan">调试信息</div>
+          <div>NEXT_PUBLIC_SUPABASE_URL 是否存在：{String(Boolean(supabaseUrl))}</div>
+          <div className="break-words">
+            NEXT_PUBLIC_SUPABASE_URL 实际值：{supabaseUrl ?? "未配置"}
+          </div>
+          <div>
+            NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY 是否存在：
+            {String(Boolean(supabasePublishableKey))}
+          </div>
+          <div className="break-words">当前 location.origin：{currentOrigin}</div>
+        </div>
 
         <Link
           href="/"
