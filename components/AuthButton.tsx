@@ -1,55 +1,69 @@
+"use client";
+
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import type { User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 
-async function signOut() {
-  "use server";
+export default function AuthButton() {
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  try {
-    const supabase = await createClient();
-    await supabase.auth.signOut();
-  } catch {
-    // Missing Supabase env should not break the research dashboard shell.
-  }
+  useEffect(() => {
+    let isMounted = true;
 
-  redirect("/login");
-}
+    try {
+      const supabase = createClient();
 
-export default async function AuthButton() {
-  try {
-    const supabase = await createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const user = session?.user;
+      void supabase.auth.getUser().then(({ data }) => {
+        if (isMounted) {
+          setUser(data.user ?? null);
+          setIsLoading(false);
+        }
+      });
 
-    if (!user) {
-      return (
-        <Link
-          href="/login"
-          className="rounded border border-terminal-cyan/40 bg-terminal-panelSoft px-3 py-2 text-sm text-terminal-cyan transition hover:border-terminal-cyan"
-        >
-          登录
-        </Link>
-      );
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null);
+        setIsLoading(false);
+        router.refresh();
+      });
+
+      return () => {
+        isMounted = false;
+        subscription.unsubscribe();
+      };
+    } catch {
+      setUser(null);
+      setIsLoading(false);
+    }
+  }, [router]);
+
+  const handleSignOut = async () => {
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch {
+      // Keep the fallback navigation available if Supabase env is missing.
     }
 
+    setUser(null);
+    router.refresh();
+    router.push("/login");
+  };
+
+  if (isLoading) {
     return (
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="max-w-[220px] truncate rounded border border-terminal-border bg-terminal-panel px-3 py-2 text-sm text-terminal-muted">
-          {user.email}
-        </span>
-        <form action={signOut}>
-          <button
-            type="submit"
-            className="rounded border border-terminal-red/35 bg-terminal-panel px-3 py-2 text-sm text-terminal-red transition hover:border-terminal-red"
-          >
-            退出登录
-          </button>
-        </form>
-      </div>
+      <span className="rounded border border-terminal-border bg-terminal-panel px-3 py-2 text-sm text-terminal-muted">
+        登录状态...
+      </span>
     );
-  } catch {
+  }
+
+  if (!user) {
     return (
       <Link
         href="/login"
@@ -59,4 +73,19 @@ export default async function AuthButton() {
       </Link>
     );
   }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="max-w-[220px] truncate rounded border border-terminal-border bg-terminal-panel px-3 py-2 text-sm text-terminal-muted">
+        {user.email}
+      </span>
+      <button
+        type="button"
+        onClick={handleSignOut}
+        className="rounded border border-terminal-red/35 bg-terminal-panel px-3 py-2 text-sm text-terminal-red transition hover:border-terminal-red"
+      >
+        退出登录
+      </button>
+    </div>
+  );
 }

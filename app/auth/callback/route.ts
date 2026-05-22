@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const next = requestUrl.searchParams.get("next") ?? "/";
 
   if (code) {
     try {
@@ -15,5 +14,10 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(new URL(next, requestUrl.origin));
+  const response = NextResponse.redirect(new URL("/", requestUrl.origin), {
+    status: 303,
+  });
+  response.headers.set("Cache-Control", "no-store");
+
+  return response;
 }
