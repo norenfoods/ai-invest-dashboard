@@ -54,6 +54,10 @@ const buildMarkdown = (brief: MorningBrief): string =>
       ),
     ),
     "",
+    sectionMarkdown("过去 7 天市场变化", brief.last7DaysChanges),
+    "",
+    sectionMarkdown("AI 市场状态变化趋势", brief.marketStateTrends),
+    "",
     sectionMarkdown("主线状态", [
       `AI 主线：${brief.aiThemeStatus}`,
       `半导体：${brief.semiconductorStatus}`,
@@ -259,6 +263,14 @@ export default function MorningBriefPanel({
                 </p>
               </div>
             </div>
+          </DashboardCard>
+
+          <DashboardCard title="过去 7 天市场变化" eyebrow="Research Memory">
+            <BriefList items={brief.last7DaysChanges} />
+          </DashboardCard>
+
+          <DashboardCard title="AI 市场状态变化趋势" eyebrow="State Trends">
+            <BriefList items={brief.marketStateTrends} />
           </DashboardCard>
 
           <DashboardCard title="Watchlist 异动" eyebrow="High Signal Moves">

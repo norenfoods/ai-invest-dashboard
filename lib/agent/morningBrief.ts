@@ -5,6 +5,7 @@ import { generateJsonWithOpenAI } from "@/lib/ai/openaiClient";
 import { getCache, setCache } from "@/lib/cache/simpleCache";
 import type { Stock } from "@/lib/mockData";
 import type { PortfolioPosition } from "@/lib/portfolio/types";
+import { getRecentResearchMemory } from "@/lib/agent/researchMemory";
 import { getAlertsForSymbolsAndPortfolio } from "@/lib/services/alertService";
 import { getStocksBySymbols, watchlistSymbols } from "@/lib/services/stockService";
 
@@ -26,6 +27,8 @@ export type MorningBrief = {
   oneLineSummary: string;
   indexes: MorningBriefQuote[];
   macro: MorningBriefQuote[];
+  last7DaysChanges: string[];
+  marketStateTrends: string[];
   aiThemeStatus: string;
   semiconductorStatus: string;
   softwareStatus: string;
@@ -162,6 +165,7 @@ const fallbackBrief = (
   macro: MorningBriefQuote[],
   stocks: Stock[],
   riskNotes: string[],
+  memoryNotes: string[],
 ): MorningBrief => {
   const movers = topMovers(stocks);
   const qqq = indexes.find((item) => item.symbol === "QQQ");
@@ -178,6 +182,23 @@ const fallbackBrief = (
     oneLineSummary: `市场主线聚焦科技权重与 AI 链条，QQQ ${formatPercent(qqq?.changePercent)}，SOXX ${formatPercent(soxx?.changePercent)}，波动率 ${formatPercent(vix?.changePercent)}。${DISCLAIMER}`,
     indexes,
     macro,
+    last7DaysChanges: memoryNotes.length
+      ? memoryNotes.slice(0, 5)
+      : [
+          "过去 7 天暂无足够历史记忆，当前简报将从今日市场结构开始建立长期上下文。",
+        ],
+    marketStateTrends: [
+      (vix?.changePercent ?? 0) > 3
+        ? "risk-off：波动率上行，风险偏好需要重新评估。"
+        : "risk-on：波动率未显著抬升，风险偏好暂未明显恶化。",
+      (soxx?.changePercent ?? 0) >= (qqq?.changePercent ?? 0)
+        ? "AI 主线：半导体相对科技权重更强，AI 硬件链仍是核心观察线索。"
+        : "软件补涨：科技权重强于半导体，需观察软件和平台股是否接力。",
+      (indexes.find((item) => item.symbol === "IWM")?.changePercent ?? 0) >=
+      (indexes.find((item) => item.symbol === "SPY")?.changePercent ?? 0)
+        ? "宽度改善：小盘相对表现不弱，市场参与度有改善迹象。"
+        : "宽度恶化：小盘弱于大盘，市场宽度仍需跟踪。",
+    ],
     aiThemeStatus: aiNames.length
       ? `AI 主线跟踪 ${aiNames.join("、")}；重点观察算力需求、云资本开支和估值消化速度。`
       : "AI 主线数据不足，重点观察科技权重和半导体 ETF 的相对强弱。",
@@ -215,6 +236,12 @@ const normalizeBrief = (
       : `${oneLineSummary}${oneLineSummary.endsWith("。") ? "" : "。"}${DISCLAIMER}`,
     indexes: fallback.indexes,
     macro: fallback.macro,
+    last7DaysChanges: result?.last7DaysChanges?.length
+      ? result.last7DaysChanges
+      : fallback.last7DaysChanges,
+    marketStateTrends: result?.marketStateTrends?.length
+      ? result.marketStateTrends
+      : fallback.marketStateTrends,
     aiThemeStatus: result?.aiThemeStatus || fallback.aiThemeStatus,
     semiconductorStatus:
       result?.semiconductorStatus || fallback.semiconductorStatus,
@@ -264,10 +291,14 @@ export async function generateMorningBrief(
       forceRefresh: options.forceRefresh,
     }),
   ]);
+  const memory = await getRecentResearchMemory();
+  const memoryNotes = memory.last7Days.map(
+    (item) => `${item.date} · ${item.title}：${item.content}`,
+  );
   const riskNotes = alerts.map(
     (alert) => `${alert.symbol} · ${alert.companyName}：${alert.message}`,
   );
-  const fallback = fallbackBrief(indexes, macro, stocks, riskNotes);
+  const fallback = fallbackBrief(indexes, macro, stocks, riskNotes, memoryNotes);
 
   try {
     const prompt = `
@@ -285,6 +316,8 @@ export async function generateMorningBrief(
 JSON schema:
 {
   "oneLineSummary": "今日一句话总结，必须包含 '${DISCLAIMER}'",
+  "last7DaysChanges": ["过去 7 天市场变化1", "过去 7 天市场变化2", "过去 7 天市场变化3"],
+  "marketStateTrends": ["risk-on / risk-off / AI 主线 / 软件补涨 / 宽度改善 / 宽度恶化 中的趋势判断"],
   "aiThemeStatus": "AI 主线状态",
   "semiconductorStatus": "半导体状态",
   "softwareStatus": "软件股状态",
@@ -306,6 +339,17 @@ ${JSON.stringify(stocks)}
 
 规则预警:
 ${JSON.stringify(alerts)}
+
+最近 3 天研究记忆:
+${JSON.stringify(memory.last3Days)}
+
+最近 7 天研究记忆:
+${JSON.stringify(memory.last7Days)}
+
+最近 30 天研究记忆:
+${JSON.stringify(memory.last30Days)}
+
+请在 last7DaysChanges 和 marketStateTrends 中引用历史变化，但不要虚构连续天数；只有研究记忆明确支持时，才使用“连续 N 天”。
 `;
 
     const result = await generateJsonWithOpenAI<Partial<MorningBrief>>(prompt);

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateMorningBrief } from "@/lib/agent/morningBrief";
+import { saveDailyAIObservations } from "@/lib/agent/researchMemory";
+import { saveMorningBrief } from "@/lib/agent/saveMorningBrief";
 import type { PortfolioPosition } from "@/lib/portfolio/types";
 
 const parseSymbols = (request: Request): string[] => {
@@ -33,9 +35,12 @@ export async function GET(request: Request) {
       positions: parsePositions(request),
       forceRefresh: shouldRefresh(request),
     });
+    const saved = await saveMorningBrief(brief);
+    await saveDailyAIObservations(brief);
 
     return NextResponse.json({
       brief,
+      saved,
       lastUpdated: new Date().toISOString(),
     });
   } catch {

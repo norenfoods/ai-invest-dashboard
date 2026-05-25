@@ -1,9 +1,11 @@
 import AlertsList from "@/components/AlertsList";
+import Link from "next/link";
 import DashboardWatchlistRanking from "@/components/DashboardWatchlistRanking";
 import DashboardCard from "@/components/DashboardCard";
 import DataStatusBar from "@/components/DataStatusBar";
 import MetricCard from "@/components/MetricCard";
 import PortfolioSummaryCard from "@/components/PortfolioSummaryCard";
+import { getLatestMorningBrief } from "@/lib/agent/saveMorningBrief";
 import { aiMarketSummary } from "@/lib/mockData";
 import { getAlertsForWatchlist } from "@/lib/services/alertService";
 import { getIndexQuotes, getWatchlistStocks } from "@/lib/services/stockService";
@@ -14,10 +16,11 @@ const formatChange = (value: number, percent: number) =>
   `${value > 0 ? "+" : ""}${value.toFixed(2)} / ${percent > 0 ? "+" : ""}${percent.toFixed(2)}%`;
 
 export default async function DashboardPage() {
-  const [indexQuotes, watchlistStocks, alerts] = await Promise.all([
+  const [indexQuotes, watchlistStocks, alerts, latestMorningBrief] = await Promise.all([
     getIndexQuotes(),
     getWatchlistStocks(),
     getAlertsForWatchlist(),
+    getLatestMorningBrief(),
   ]);
 
   return (
@@ -56,6 +59,44 @@ export default async function DashboardPage() {
         <div className="space-y-6">
           <DashboardCard title="持仓摘要" eyebrow="Portfolio Summary">
             <PortfolioSummaryCard initialStocks={watchlistStocks} />
+          </DashboardCard>
+
+          <DashboardCard title="最新 Morning Brief" eyebrow="AI Morning Brief">
+            {latestMorningBrief ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-terminal-text">
+                      {latestMorningBrief.title}
+                    </div>
+                    <div className="mt-1 text-xs text-terminal-muted">
+                      归档日期：{latestMorningBrief.date}
+                    </div>
+                  </div>
+                  <Link
+                    href="/morning-brief/archive"
+                    className="rounded-md border border-terminal-cyan/40 px-3 py-2 text-xs font-medium text-terminal-cyan hover:border-terminal-cyan"
+                  >
+                    查看归档
+                  </Link>
+                </div>
+                <p className="border-l-2 border-terminal-cyan/60 pl-3 text-sm leading-6 text-terminal-muted">
+                  {latestMorningBrief.summary}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm leading-6 text-terminal-muted">
+                  暂无已归档 Morning Brief。配置 Supabase 和 Cron 后会每天自动保存，也可以先打开 Morning Brief 页面生成当天简报。
+                </p>
+                <Link
+                  href="/morning-brief"
+                  className="inline-flex rounded-md border border-terminal-cyan/40 px-3 py-2 text-xs font-medium text-terminal-cyan hover:border-terminal-cyan"
+                >
+                  生成 Morning Brief
+                </Link>
+              </div>
+            )}
           </DashboardCard>
 
           <DashboardCard title="AI 今日市场摘要" eyebrow="AI Market Brief">
