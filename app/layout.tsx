@@ -14,6 +14,7 @@ const navItems = [
   { href: "/portfolio", label: "持仓" },
   { href: "/earnings", label: "财报分析" },
   { href: "/stocks/NVDA", label: "个股详情" },
+  { href: "/morning-brief", label: "Morning Brief" },
   { href: "/reports", label: "AI日报" },
   { href: "/alerts", label: "预警中心" },
 ];
