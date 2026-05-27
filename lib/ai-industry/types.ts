@@ -63,12 +63,14 @@ export type AiNarrativeCompany = {
 
 export type AiThesis = {
   id: string;
-  company_id: string;
+  company_id: string | null;
+  slug: string | null;
   title: string;
   thesis: string;
   status: string;
   confidence: number;
   time_horizon: string;
+  updated_at: string | null;
 };
 
 export type AiThesisEvent = {
@@ -80,6 +82,18 @@ export type AiThesisEvent = {
   impact: string;
   confidence_delta: number;
   source: string;
+};
+
+export type AiThesisEvidence = {
+  id: string;
+  thesis_id: string;
+  evidence_type: "support" | "contradict";
+  summary: string;
+  source_type: string;
+  confidence_impact: number;
+  event_date: string;
+  related_company_id: string | null;
+  related_narrative_id: string | null;
 };
 
 export type AiCompanyWithCategory = AiCompanyNode & {
@@ -105,4 +119,15 @@ export type AiCompanyDetail = AiCompanyWithCategory & {
     }
   >;
   theses: AiThesis[];
+};
+
+export type AiThesisDetail = AiThesis & {
+  companies: AiCompanyNode[];
+  narratives: AiNarrative[];
+  evidence: Array<
+    AiThesisEvidence & {
+      related_company: AiCompanyNode | null;
+      related_narrative: AiNarrative | null;
+    }
+  >;
 };

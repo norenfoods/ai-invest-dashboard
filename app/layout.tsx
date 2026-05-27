@@ -17,6 +17,7 @@ const navItems = [
   { href: "/ai/global", label: "Global AI Map" },
   { href: "/ai/china", label: "国产替代 Map" },
   { href: "/ai/narratives", label: "Narratives" },
+  { href: "/ai/theses", label: "Theses" },
   { href: "/morning-brief", label: "Morning Brief" },
   { href: "/morning-brief/archive", label: "简报归档" },
   { href: "/research-memory", label: "研究记忆" },

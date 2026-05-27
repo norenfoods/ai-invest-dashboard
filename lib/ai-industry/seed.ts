@@ -6,6 +6,8 @@ import type {
   AiNarrative,
   AiNarrativeCompany,
   AiThesis,
+  AiThesisDetail,
+  AiThesisEvidence,
 } from "@/lib/ai-industry/types";
 
 export const aiMarketMapsSeed: AiMarketMap[] = [
@@ -209,10 +211,259 @@ export const aiThesesSeed: AiThesis[] = thesisRows.map(([company_id, title, conf
   return {
     id: `thesis-${index + 1}`,
     company_id,
+    slug: null,
     title: String(title),
     thesis: node?.thesis ?? String(title),
     status: "active",
     confidence: Number(confidence),
     time_horizon: "12-24 months",
+    updated_at: "2026-05-27T00:00:00.000Z",
   };
 });
+
+const thematicThesisRows: Array<{
+  id: string;
+  slug: string;
+  title: string;
+  thesis: string;
+  status: string;
+  confidence: number;
+  time_horizon: string;
+  narratives: string[];
+  companies: string[];
+}> = [
+  {
+    id: "thesis-china-domestic-gpu-substitution",
+    slug: "china-domestic-gpu-substitution",
+    title: "China domestic GPU substitution",
+    thesis:
+      "China AI infrastructure demand will increasingly route toward domestic accelerators and supporting semiconductor infrastructure as export controls, procurement policy, and sovereign compute priorities make foreign GPU availability less reliable.",
+    status: "active",
+    confidence: 3,
+    time_horizon: "24-36 months",
+    narratives: ["nar-china-domestic-substitution", "nar-sovereign-ai"],
+    companies: ["co-cambricon", "co-hygon", "co-smic", "co-naura", "co-inspur"],
+  },
+  {
+    id: "thesis-ai-capex-supercycle",
+    slug: "ai-capex-supercycle",
+    title: "AI capex supercycle",
+    thesis:
+      "Hyperscalers, sovereign buyers, and AI-native platforms are likely to sustain a multi-year infrastructure buildout across accelerators, networking, foundry, memory, and datacenter physical infrastructure.",
+    status: "active",
+    confidence: 4,
+    time_horizon: "18-36 months",
+    narratives: ["nar-ai-capex-supercycle", "nar-sovereign-ai"],
+    companies: ["co-nvda", "co-tsm", "co-avgo", "co-anet", "co-vrt"],
+  },
+  {
+    id: "thesis-hbm-shortage-persistence",
+    slug: "hbm-shortage-persistence",
+    title: "HBM shortage persistence",
+    thesis:
+      "HBM supply is likely to remain structurally tight because AI accelerator roadmaps keep increasing memory bandwidth requirements faster than high-yield advanced memory and packaging capacity can normalize.",
+    status: "active",
+    confidence: 4,
+    time_horizon: "12-24 months",
+    narratives: ["nar-hbm-shortage", "nar-ai-capex-supercycle"],
+    companies: ["co-sk-hynix", "co-mu", "co-nvda", "co-tsm"],
+  },
+  {
+    id: "thesis-inference-demand-acceleration",
+    slug: "inference-demand-acceleration",
+    title: "Inference demand acceleration",
+    thesis:
+      "Inference workloads should become a larger and more persistent source of AI infrastructure demand as consumer AI, enterprise copilots, search, agents, and vertical applications move from pilots to repeated production usage.",
+    status: "watching",
+    confidence: 3,
+    time_horizon: "12-30 months",
+    narratives: ["nar-inference-demand-explosion", "nar-ai-agent-infrastructure"],
+    companies: ["co-nvda", "co-amd", "co-anet", "co-pltr", "co-iflytek"],
+  },
+  {
+    id: "thesis-datacenter-power-bottleneck",
+    slug: "datacenter-power-bottleneck",
+    title: "Datacenter power bottleneck",
+    thesis:
+      "Power availability, cooling density, and grid interconnect timelines are becoming binding constraints on AI datacenter deployment, shifting incremental value toward electrical and thermal infrastructure suppliers.",
+    status: "active",
+    confidence: 4,
+    time_horizon: "24-48 months",
+    narratives: ["nar-datacenter-power-bottleneck", "nar-ai-capex-supercycle"],
+    companies: ["co-vrt", "co-etn", "co-nvda", "co-tsm"],
+  },
+];
+
+export const aiThematicThesesSeed: AiThesisDetail[] = thematicThesisRows.map(
+  (row) => ({
+    id: row.id,
+    company_id: null,
+    slug: row.slug,
+    title: row.title,
+    thesis: row.thesis,
+    status: row.status,
+    confidence: row.confidence,
+    time_horizon: row.time_horizon,
+    updated_at: "2026-05-27T00:00:00.000Z",
+    companies: row.companies
+      .map((companyId) => aiCompanyNodesSeed.find((item) => item.id === companyId))
+      .filter((item): item is AiThesisDetail["companies"][number] =>
+        Boolean(item),
+      ),
+    narratives: row.narratives
+      .map((narrativeId) => aiNarrativesSeed.find((item) => item.id === narrativeId))
+      .filter((item): item is AiThesisDetail["narratives"][number] =>
+        Boolean(item),
+      ),
+    evidence: [],
+  }),
+);
+
+const evidenceRows: Array<
+  Omit<
+    AiThesisEvidence,
+    "id" | "thesis_id" | "related_company_id" | "related_narrative_id"
+  > & {
+    thesis_slug: string;
+    company_id?: string;
+    narrative_id?: string;
+  }
+> = [
+  {
+    thesis_slug: "china-domestic-gpu-substitution",
+    evidence_type: "support",
+    summary:
+      "Export controls and sovereign procurement priorities keep domestic AI chips strategically relevant even when performance trails foreign leaders.",
+    source_type: "policy",
+    confidence_impact: 1,
+    event_date: "2026-05-10",
+    company_id: "co-cambricon",
+    narrative_id: "nar-china-domestic-substitution",
+  },
+  {
+    thesis_slug: "china-domestic-gpu-substitution",
+    evidence_type: "contradict",
+    summary:
+      "Advanced-node access, software ecosystem maturity, and model compatibility remain gating risks for broad domestic GPU adoption.",
+    source_type: "supply_chain",
+    confidence_impact: -1,
+    event_date: "2026-05-12",
+    company_id: "co-smic",
+    narrative_id: "nar-china-domestic-substitution",
+  },
+  {
+    thesis_slug: "ai-capex-supercycle",
+    evidence_type: "support",
+    summary:
+      "Hyperscaler commentary and supplier backlogs continue to point to elevated AI infrastructure spending across compute, networking, and datacenter buildouts.",
+    source_type: "earnings",
+    confidence_impact: 1,
+    event_date: "2026-05-08",
+    company_id: "co-nvda",
+    narrative_id: "nar-ai-capex-supercycle",
+  },
+  {
+    thesis_slug: "ai-capex-supercycle",
+    evidence_type: "contradict",
+    summary:
+      "Cloud ROI scrutiny and depreciation pressure could force digestion periods after rapid infrastructure deployment.",
+    source_type: "market_signal",
+    confidence_impact: -1,
+    event_date: "2026-05-15",
+    narrative_id: "nar-ai-capex-supercycle",
+  },
+  {
+    thesis_slug: "hbm-shortage-persistence",
+    evidence_type: "support",
+    summary:
+      "Accelerator roadmaps require higher HBM content and qualification cycles limit how quickly incremental supply can serve leading platforms.",
+    source_type: "supply_chain",
+    confidence_impact: 1,
+    event_date: "2026-05-06",
+    company_id: "co-sk-hynix",
+    narrative_id: "nar-hbm-shortage",
+  },
+  {
+    thesis_slug: "hbm-shortage-persistence",
+    evidence_type: "contradict",
+    summary:
+      "Aggressive memory capex could loosen scarcity if demand growth slows or customers redesign around lower memory intensity.",
+    source_type: "capex_plan",
+    confidence_impact: -1,
+    event_date: "2026-05-18",
+    company_id: "co-mu",
+    narrative_id: "nar-hbm-shortage",
+  },
+  {
+    thesis_slug: "inference-demand-acceleration",
+    evidence_type: "support",
+    summary:
+      "Production AI features, enterprise agents, and search workloads increase recurring inference traffic beyond one-time training cluster demand.",
+    source_type: "product_adoption",
+    confidence_impact: 1,
+    event_date: "2026-05-11",
+    company_id: "co-nvda",
+    narrative_id: "nar-inference-demand-explosion",
+  },
+  {
+    thesis_slug: "inference-demand-acceleration",
+    evidence_type: "contradict",
+    summary:
+      "Model efficiency gains and price competition may compress compute intensity per query before volume fully offsets deflation.",
+    source_type: "technology",
+    confidence_impact: -1,
+    event_date: "2026-05-20",
+    narrative_id: "nar-inference-demand-explosion",
+  },
+  {
+    thesis_slug: "datacenter-power-bottleneck",
+    evidence_type: "support",
+    summary:
+      "AI rack density and interconnect delays are pushing datacenter customers toward upgraded power distribution, cooling, and grid-facing infrastructure.",
+    source_type: "industry_check",
+    confidence_impact: 1,
+    event_date: "2026-05-09",
+    company_id: "co-vrt",
+    narrative_id: "nar-datacenter-power-bottleneck",
+  },
+  {
+    thesis_slug: "datacenter-power-bottleneck",
+    evidence_type: "contradict",
+    summary:
+      "Delayed datacenter permits or slower GPU deployment could defer power equipment revenue recognition despite strong long-term need.",
+    source_type: "project_risk",
+    confidence_impact: -1,
+    event_date: "2026-05-19",
+    company_id: "co-etn",
+    narrative_id: "nar-datacenter-power-bottleneck",
+  },
+];
+
+export const aiThesisEvidenceSeed: AiThesisDetail["evidence"] =
+  evidenceRows.map((row, index) => {
+    const thesis = aiThematicThesesSeed.find((item) => item.slug === row.thesis_slug);
+    const relatedCompany =
+      aiCompanyNodesSeed.find((item) => item.id === row.company_id) ?? null;
+    const relatedNarrative =
+      aiNarrativesSeed.find((item) => item.id === row.narrative_id) ?? null;
+
+    return {
+      id: `thesis-evidence-${index + 1}`,
+      thesis_id: thesis?.id ?? row.thesis_slug,
+      evidence_type: row.evidence_type,
+      summary: row.summary,
+      source_type: row.source_type,
+      confidence_impact: row.confidence_impact,
+      event_date: row.event_date,
+      related_company_id: relatedCompany?.id ?? null,
+      related_narrative_id: relatedNarrative?.id ?? null,
+      related_company: relatedCompany,
+      related_narrative: relatedNarrative,
+    };
+  });
+
+for (const thesis of aiThematicThesesSeed) {
+  thesis.evidence = aiThesisEvidenceSeed.filter(
+    (evidence) => evidence.thesis_id === thesis.id,
+  );
+}
