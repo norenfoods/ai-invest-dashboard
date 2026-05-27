@@ -89,6 +89,7 @@ export type AiCompanyWithCategory = AiCompanyNode & {
 
 export type AiMapDetail = AiMarketMap & {
   categories: Array<AiIndustryCategory & { companies: AiCompanyNode[] }>;
+  relationships: AiCompanyRelationship[];
 };
 
 export type AiNarrativeDetail = AiNarrative & {

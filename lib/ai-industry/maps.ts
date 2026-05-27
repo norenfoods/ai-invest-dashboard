@@ -3,6 +3,7 @@ import "server-only";
 import { createAiIndustryReadClient } from "@/lib/ai-industry/client";
 import {
   aiCompanyNodesSeed,
+  aiCompanyRelationshipsSeed,
   aiIndustryCategoriesSeed,
   aiMarketMapsSeed,
 } from "@/lib/ai-industry/seed";
@@ -16,6 +17,8 @@ const mapSelect = "id,slug,name,description,region_scope";
 const categorySelect = "id,map_id,slug,name,sort_order,description";
 const companySelect =
   "id,ticker,exchange,name,region,country,map_id,category_id,ai_narrative,thesis,beneficiaries,dependency_relationships,market_regime_relevance,valuation_context,earnings_memory,is_core";
+const relationshipSelect =
+  "id,source_company_id,target_company_id,relationship_type,description,strength,evidence";
 
 export async function listAiMarketMaps(): Promise<AiMarketMap[]> {
   const supabase = createAiIndustryReadClient();
@@ -82,13 +85,39 @@ export async function getAiMarketMap(slug: string): Promise<AiMapDetail | null> 
       });
       return getSeedMapDetail(slug);
     }
+    const companyRows = (companies ?? []) as AiMapDetail["categories"][number]["companies"];
+    const companyIds = companyRows.map((company) => company.id);
+    let relationships: AiMapDetail["relationships"] = [];
+
+    if (companyIds.length) {
+      const { data: relationshipRows, error: relationshipsError } = await supabase
+        .from("ai_company_relationships")
+        .select(relationshipSelect)
+        .or(
+          `source_company_id.in.(${companyIds.join(",")}),target_company_id.in.(${companyIds.join(",")})`,
+        );
+
+      if (relationshipsError) {
+        console.warn("AI market map relationship query failed; using seed fallback.", {
+          slug,
+          relationshipsError: relationshipsError.message,
+        });
+        return getSeedMapDetail(slug);
+      }
+
+      relationships = (relationshipRows ?? []).filter((relationship) =>
+        companyIds.includes(relationship.source_company_id) ||
+        companyIds.includes(relationship.target_company_id),
+      ) as AiMapDetail["relationships"];
+    }
 
     return buildMapDetail(
       map as AiMarketMap,
       ((categories ?? []) as AiIndustryCategory[]).sort(
         (a, b) => a.sort_order - b.sort_order,
       ),
-      (companies ?? []) as AiMapDetail["categories"][number]["companies"],
+      companyRows,
+      relationships,
     );
   } catch {
     return getSeedMapDetail(slug);
@@ -106,18 +135,26 @@ const getSeedMapDetail = (slug: string): AiMapDetail | null => {
     .filter((item) => item.map_id === map.id)
     .sort((a, b) => a.sort_order - b.sort_order);
   const companies = aiCompanyNodesSeed.filter((item) => item.map_id === map.id);
+  const companyIds = new Set(companies.map((company) => company.id));
+  const relationships = aiCompanyRelationshipsSeed.filter(
+    (relationship) =>
+      companyIds.has(relationship.source_company_id) ||
+      companyIds.has(relationship.target_company_id),
+  );
 
-  return buildMapDetail(map, categories, companies);
+  return buildMapDetail(map, categories, companies, relationships);
 };
 
 const buildMapDetail = (
   map: AiMarketMap,
   categories: AiIndustryCategory[],
   companies: AiMapDetail["categories"][number]["companies"],
+  relationships: AiMapDetail["relationships"],
 ): AiMapDetail => ({
   ...map,
   categories: categories.map((category) => ({
     ...category,
     companies: companies.filter((company) => company.category_id === category.id),
   })),
+  relationships,
 });
