@@ -1,11 +1,23 @@
+import { unstable_noStore as noStore } from "next/cache";
 import DataStatusBar from "@/components/DataStatusBar";
 import MorningBriefPanel from "@/components/MorningBriefPanel";
-import { generateAndSaveMorningBrief } from "@/lib/agent/saveMorningBrief";
+import {
+  emptyMorningBrief,
+  getLatestMorningBrief,
+  getMorningBriefByDate,
+  getShanghaiDate,
+  savedMorningBriefToBrief,
+} from "@/lib/agent/saveMorningBrief";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function MorningBriefPage() {
-  const { brief, saved, alreadyGenerated } = await generateAndSaveMorningBrief();
+  noStore();
+
+  const saved =
+    (await getMorningBriefByDate(getShanghaiDate())) ?? (await getLatestMorningBrief());
+  const brief = saved ? savedMorningBriefToBrief(saved) : emptyMorningBrief();
 
   return (
     <div className="space-y-6">
@@ -21,7 +33,7 @@ export default async function MorningBriefPage() {
         <div className="rounded border border-terminal-border bg-terminal-panel px-4 py-2 text-sm text-terminal-muted">
           今日状态：
           <span className="text-terminal-cyan">
-            {alreadyGenerated || saved ? "已生成并归档" : "已生成，等待归档配置"}
+            {saved ? "已生成并归档" : "尚未生成"}
           </span>
         </div>
       </div>

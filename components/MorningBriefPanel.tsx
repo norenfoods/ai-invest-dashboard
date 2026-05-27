@@ -79,25 +79,27 @@ async function fetchMorningBrief(
   refresh = false,
 ): Promise<MorningBrief | null> {
   try {
-    const params = new URLSearchParams({
-      symbols: getWatchlistSymbols().join(","),
-      positions: JSON.stringify(getPositions()),
+    const response = await fetch("/api/morning-brief", {
+      method: refresh ? "POST" : "GET",
+      headers: refresh ? { "content-type": "application/json" } : undefined,
+      body: refresh
+        ? JSON.stringify({
+            symbols: getWatchlistSymbols(),
+            positions: getPositions(),
+            refresh: true,
+          })
+        : undefined,
     });
-
-    if (refresh) {
-      params.set("refresh", "1");
-    }
-
-    const response = await fetch(`/api/morning-brief?${params.toString()}`);
     const data = (await response.json()) as {
       brief: MorningBrief | null;
       lastUpdated?: string;
       error?: string;
     };
+    const error = data.error ?? (!response.ok ? "Morning Brief 生成失败。" : undefined);
 
     window.dispatchEvent(
-      new CustomEvent(data.error ? "app:data-error" : "app:data-updated", {
-        detail: { lastUpdated: data.lastUpdated, message: data.error },
+      new CustomEvent(error ? "app:data-error" : "app:data-updated", {
+        detail: { lastUpdated: data.lastUpdated, message: error },
       }),
     );
 

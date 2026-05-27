@@ -1,39 +1,63 @@
 import { NextResponse } from "next/server";
 import { generateMorningBrief } from "@/lib/agent/morningBrief";
 import { saveDailyAIObservations } from "@/lib/agent/researchMemory";
-import { saveMorningBrief } from "@/lib/agent/saveMorningBrief";
+import {
+  getLatestMorningBrief,
+  getMorningBriefByDate,
+  getShanghaiDate,
+  saveMorningBrief,
+  savedMorningBriefToBrief,
+} from "@/lib/agent/saveMorningBrief";
+import { hasProtectedWriteAccess } from "@/lib/auth/writeAccess";
 import type { PortfolioPosition } from "@/lib/portfolio/types";
 
-const parseSymbols = (request: Request): string[] => {
-  const url = new URL(request.url);
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-  return (
-    url.searchParams
-      .get("symbols")
-      ?.split(",")
-      .map((symbol) => symbol.trim().toUpperCase())
-      .filter(Boolean) ?? []
-  );
+type MorningBriefRequestBody = {
+  symbols?: string[];
+  positions?: PortfolioPosition[];
+  refresh?: boolean;
 };
 
-const parsePositions = (request: Request): PortfolioPosition[] => {
+const normalizeSymbols = (symbols: unknown): string[] =>
+  Array.isArray(symbols)
+    ? symbols
+        .filter((symbol): symbol is string => typeof symbol === "string")
+        .map((symbol) => symbol.trim().toUpperCase())
+        .filter(Boolean)
+    : [];
+
+const parseBody = async (request: Request): Promise<MorningBriefRequestBody> => {
   try {
-    const raw = new URL(request.url).searchParams.get("positions");
-    return raw ? (JSON.parse(raw) as PortfolioPosition[]) : [];
+    return (await request.json()) as MorningBriefRequestBody;
   } catch {
-    return [];
+    return {};
   }
 };
 
-const shouldRefresh = (request: Request): boolean =>
-  new URL(request.url).searchParams.get("refresh") === "1";
-
 export async function GET(request: Request) {
+  const date = new URL(request.url).searchParams.get("date") ?? getShanghaiDate();
+  const saved = (await getMorningBriefByDate(date)) ?? (await getLatestMorningBrief());
+
+  return NextResponse.json({
+    brief: saved ? savedMorningBriefToBrief(saved) : null,
+    saved,
+    lastUpdated: new Date().toISOString(),
+  });
+}
+
+export async function POST(request: Request) {
+  if (!(await hasProtectedWriteAccess(request))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
+    const body = await parseBody(request);
     const brief = await generateMorningBrief({
-      symbols: parseSymbols(request),
-      positions: parsePositions(request),
-      forceRefresh: shouldRefresh(request),
+      symbols: normalizeSymbols(body.symbols),
+      positions: Array.isArray(body.positions) ? body.positions : [],
+      forceRefresh: Boolean(body.refresh),
     });
     const saved = await saveMorningBrief(brief);
     await saveDailyAIObservations(brief);

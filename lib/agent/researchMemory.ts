@@ -1,12 +1,13 @@
 import "server-only";
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { MorningBrief } from "@/lib/agent/morningBrief";
 import {
   getSupabaseServiceRoleKey,
   getSupabaseUrl,
   hasSupabaseServerConfig,
 } from "@/lib/env";
+import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 
 const TABLE_NAME = "research_memory";
 const TIME_ZONE = "Asia/Shanghai";
@@ -155,7 +156,65 @@ export async function saveResearchMemories(
   }
 }
 
+const queryResearchMemory = async (
+  supabase: SupabaseClient,
+  filters: ResearchMemoryFilters = {},
+): Promise<ResearchMemoryItem[]> => {
+  let query = supabase
+    .from(TABLE_NAME)
+    .select("id,date,category,symbol,title,content,tags,created_at")
+    .order("date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(300);
+
+  if (filters.symbol) {
+    query = query.eq("symbol", filters.symbol.trim().toUpperCase());
+  }
+
+  if (filters.category) {
+    query = query.eq("category", filters.category);
+  }
+
+  if (filters.tag) {
+    query = query.contains("tags", [filters.tag]);
+  }
+
+  if (filters.query) {
+    const safeQuery = filters.query.replaceAll("%", "").replaceAll(",", " ");
+    query = query.or(
+      `title.ilike.%${safeQuery}%,content.ilike.%${safeQuery}%,symbol.ilike.%${safeQuery}%`,
+    );
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return [];
+  }
+
+  return (data ?? []) as ResearchMemoryItem[];
+};
+
 export async function listResearchMemory(
+  filters: ResearchMemoryFilters = {},
+): Promise<ResearchMemoryItem[]> {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return [];
+    }
+
+    return queryResearchMemory(supabase, filters);
+  } catch {
+    return [];
+  }
+}
+
+async function listResearchMemoryWithServiceRole(
   filters: ResearchMemoryFilters = {},
 ): Promise<ResearchMemoryItem[]> {
   if (!hasSupabaseServerConfig()) {
@@ -169,39 +228,7 @@ export async function listResearchMemory(
       return [];
     }
 
-    let query = supabase
-      .from(TABLE_NAME)
-      .select("id,date,category,symbol,title,content,tags,created_at")
-      .order("date", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(300);
-
-    if (filters.symbol) {
-      query = query.eq("symbol", filters.symbol.trim().toUpperCase());
-    }
-
-    if (filters.category) {
-      query = query.eq("category", filters.category);
-    }
-
-    if (filters.tag) {
-      query = query.contains("tags", [filters.tag]);
-    }
-
-    if (filters.query) {
-      const safeQuery = filters.query.replaceAll("%", "").replaceAll(",", " ");
-      query = query.or(
-        `title.ilike.%${safeQuery}%,content.ilike.%${safeQuery}%,symbol.ilike.%${safeQuery}%`,
-      );
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      return [];
-    }
-
-    return (data ?? []) as ResearchMemoryItem[];
+    return queryResearchMemory(supabase, filters);
   } catch {
     return [];
   }
@@ -209,13 +236,13 @@ export async function listResearchMemory(
 
 export async function getRecentResearchMemory(): Promise<ResearchMemorySnapshot> {
   const [last3Days, last7Days, last30Days] = await Promise.all([
-    listResearchMemory({ query: "" }).then((items) =>
+    listResearchMemoryWithServiceRole({ query: "" }).then((items) =>
       items.filter((item) => item.date >= daysAgo(3)),
     ),
-    listResearchMemory({ query: "" }).then((items) =>
+    listResearchMemoryWithServiceRole({ query: "" }).then((items) =>
       items.filter((item) => item.date >= daysAgo(7)),
     ),
-    listResearchMemory({ query: "" }).then((items) =>
+    listResearchMemoryWithServiceRole({ query: "" }).then((items) =>
       items.filter((item) => item.date >= daysAgo(30)),
     ),
   ]);

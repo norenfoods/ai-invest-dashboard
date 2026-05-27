@@ -43,3 +43,7 @@ export function getSupabaseServiceRoleKey(): string | undefined {
 export function getCronSecret(): string | undefined {
   return clean(process.env.CRON_SECRET);
 }
+
+export function getAdminSecret(): string | undefined {
+  return clean(process.env.ADMIN_SECRET);
+}

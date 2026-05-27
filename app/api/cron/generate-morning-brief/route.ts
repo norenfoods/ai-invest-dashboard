@@ -1,33 +1,23 @@
 import { NextResponse } from "next/server";
-import { getCronSecret } from "@/lib/env";
 import {
   generateAndSaveMorningBrief,
   getMorningBriefByDate,
   getShanghaiDate,
 } from "@/lib/agent/saveMorningBrief";
+import { hasProtectedWriteAccess } from "@/lib/auth/writeAccess";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-const isAuthorized = (request: Request): boolean => {
-  const secret = getCronSecret();
-
-  if (!secret) {
-    return false;
-  }
-
-  const authorization = request.headers.get("authorization");
-  const headerSecret = request.headers.get("x-cron-secret");
-  const querySecret = new URL(request.url).searchParams.get("secret");
-
-  return (
-    authorization === `Bearer ${secret}` ||
-    headerSecret === secret ||
-    querySecret === secret
+export async function GET() {
+  return NextResponse.json(
+    { error: "Use POST to generate Morning Brief data." },
+    { status: 405 },
   );
-};
+}
 
-export async function GET(request: Request) {
-  if (!isAuthorized(request)) {
+export async function POST(request: Request) {
+  if (!(await hasProtectedWriteAccess(request))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

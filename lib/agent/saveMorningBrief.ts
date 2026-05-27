@@ -88,6 +88,90 @@ export function morningBriefToMarkdown(brief: MorningBrief): string {
   ].join("\n");
 }
 
+const getSectionLines = (markdown: string, title: string): string[] => {
+  const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = markdown.match(
+    new RegExp(`## ${escapedTitle}\\n([\\s\\S]*?)(?=\\n## |\\n仅供研究参考|$)`),
+  );
+
+  if (!match?.[1]) {
+    return [];
+  }
+
+  return match[1]
+    .split("\n")
+    .map((line) => line.trim().replace(/^- /, ""))
+    .filter(Boolean);
+};
+
+const getSectionText = (
+  markdown: string,
+  title: string,
+  fallback: string,
+): string => getSectionLines(markdown, title)[0] ?? fallback;
+
+const emptyQuote = (
+  symbol: string,
+  label: string,
+  group: "index" | "macro",
+) => ({
+  symbol,
+  label,
+  value: "已归档",
+  changePercent: null,
+  dataStatus: "missing" as const,
+  group,
+});
+
+export function savedMorningBriefToBrief(
+  saved: SavedMorningBrief,
+): MorningBrief {
+  const content = saved.content_markdown;
+  const generatedAt = saved.created_at;
+
+  return {
+    oneLineSummary: saved.summary,
+    indexes: [
+      emptyQuote("SPY", "SPY 标普500 ETF", "index"),
+      emptyQuote("QQQ", "QQQ 纳斯达克100 ETF", "index"),
+      emptyQuote("DIA", "DIA 道琼斯 ETF", "index"),
+      emptyQuote("IWM", "IWM 罗素2000 ETF", "index"),
+      emptyQuote("SOXX", "SOXX 半导体 ETF", "index"),
+      emptyQuote("^VIX", "VIX 波动率", "index"),
+    ],
+    macro: [
+      emptyQuote("^TNX", "10Y Treasury", "macro"),
+      emptyQuote("DX-Y.NYB", "DXY 美元指数", "macro"),
+      emptyQuote("CL=F", "Oil WTI 原油", "macro"),
+      emptyQuote("BTC-USD", "BTC 比特币", "macro"),
+    ],
+    last7DaysChanges: getSectionLines(content, "过去 7 天市场变化"),
+    marketStateTrends: getSectionLines(content, "AI 市场状态变化趋势"),
+    aiThemeStatus: getSectionText(content, "AI 主线状态", saved.summary),
+    semiconductorStatus: getSectionText(content, "半导体状态", saved.summary),
+    softwareStatus: getSectionText(content, "软件股状态", saved.summary),
+    watchlistMoves: getSectionLines(content, "Watchlist 异动"),
+    earningsReminders: getSectionLines(content, "财报提醒"),
+    riskNotes: getSectionLines(content, "风险提示"),
+    tomorrowFocus: getSectionLines(content, "明日观察重点"),
+    disclaimer: "仅供研究参考，不构成投资建议。",
+    generatedAt,
+  };
+}
+
+export function emptyMorningBrief(): MorningBrief {
+  const saved: SavedMorningBrief = {
+    id: "",
+    date: getShanghaiDate(),
+    title: "AI Morning Brief",
+    content_markdown: "",
+    summary: "今日尚未生成 Morning Brief。请登录后手动生成，或等待受保护的定时任务写入归档。",
+    created_at: new Date().toISOString(),
+  };
+
+  return savedMorningBriefToBrief(saved);
+}
+
 const createServiceClient = () => {
   const supabaseUrl = getSupabaseUrl();
   const serviceRoleKey = getSupabaseServiceRoleKey();
