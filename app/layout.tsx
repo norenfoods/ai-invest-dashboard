@@ -17,6 +17,7 @@ const navItems = [
   { href: "/ai/global", label: "Global AI Map" },
   { href: "/ai/global-supply-chain", label: "Global Supply Chain" },
   { href: "/ai/china", label: "国产替代 Map" },
+  { href: "/ai/china-supply-chain", label: "China Supply Chain" },
   { href: "/ai/narratives", label: "Narratives" },
   { href: "/ai/theses", label: "Theses" },
   { href: "/morning-brief", label: "Morning Brief" },
