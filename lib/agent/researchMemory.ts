@@ -51,6 +51,15 @@ export type ResearchMemoryFilters = {
   query?: string;
 };
 
+type ResearchMemoryPayload = {
+  date: string;
+  category: ResearchMemoryCategory;
+  symbol: string | null;
+  title: string;
+  content: string;
+  tags: string[];
+};
+
 const getDate = (value = new Date()): string =>
   new Intl.DateTimeFormat("en-CA", {
     timeZone: TIME_ZONE,
@@ -133,7 +142,7 @@ export async function saveResearchMemories(
     }
 
     const today = getDate();
-    const payload = items.map((item) => ({
+    const payload: ResearchMemoryPayload[] = items.map((item) => ({
       date: item.date ?? today,
       category: item.category,
       symbol: item.symbol ?? null,
@@ -145,6 +154,47 @@ export async function saveResearchMemories(
       .from(TABLE_NAME)
       .insert(payload)
       .select("id,date,category,symbol,title,content,tags,created_at");
+
+    if (error) {
+      return [];
+    }
+
+    return (data ?? []) as ResearchMemoryItem[];
+  } catch {
+    return [];
+  }
+}
+
+export async function refreshResearchMemoryForDate(
+  date: string,
+  items: ResearchMemoryInput[],
+): Promise<ResearchMemoryItem[]> {
+  if (!hasSupabaseServerConfig() || !items.length) {
+    return [];
+  }
+
+  try {
+    const supabase = createServiceClient();
+
+    if (!supabase) {
+      return [];
+    }
+
+    const payload: ResearchMemoryPayload[] = items.map((item) => ({
+      date,
+      category: item.category,
+      symbol: item.symbol ?? null,
+      title: item.title,
+      content: item.content,
+      tags: item.tags ?? [],
+    }));
+    const { data, error } = await supabase.rpc(
+      "refresh_research_memory_for_date",
+      {
+        target_date: date,
+        items: payload,
+      },
+    );
 
     if (error) {
       return [];
@@ -309,26 +359,5 @@ export async function saveDailyAIObservations(
     ...stockItems,
   ];
 
-  if (hasSupabaseServerConfig()) {
-    try {
-      const supabase = createServiceClient();
-
-      if (supabase) {
-        await supabase
-          .from(TABLE_NAME)
-          .delete()
-          .eq("date", date)
-          .in("category", [
-            "daily_observation",
-            "risk_change",
-            "sector_state",
-            "stock_state",
-          ]);
-      }
-    } catch {
-      // Memory is a helper layer; failures should never block the brief.
-    }
-  }
-
-  return saveResearchMemories(items);
+  return refreshResearchMemoryForDate(date, items);
 }
