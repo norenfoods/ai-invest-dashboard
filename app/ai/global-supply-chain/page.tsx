@@ -5,6 +5,12 @@ import {
   type SupplyChainNarrative,
   type SupplyChainRegion,
 } from "@/lib/ai-industry/globalSupplyChain";
+import {
+  abbreviationTerms,
+  getCompanyDisplayName,
+  getLayerTerm,
+  getNarrativeTerm,
+} from "@/lib/ai-industry/terminology";
 import type { ReactNode } from "react";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +58,27 @@ const changeTone = (value?: number | null): string => {
   return value >= 0 ? "text-terminal-green" : "text-terminal-red";
 };
 
+const BilingualLabel = ({
+  primary,
+  secondary,
+  primaryClassName = "",
+  secondaryClassName = "",
+}: {
+  primary: string;
+  secondary?: string;
+  primaryClassName?: string;
+  secondaryClassName?: string;
+}) => (
+  <>
+    <span className={primaryClassName}>{primary}</span>
+    {secondary ? (
+      <span className={`ml-1.5 text-terminal-muted ${secondaryClassName}`}>
+        {secondary}
+      </span>
+    ) : null}
+  </>
+);
+
 const layerCoverage = (layer: SupplyChainLayerDetail): number => {
   if (!layer.companies.length) {
     return 0;
@@ -93,15 +120,19 @@ export default async function GlobalSupplyChainPage() {
     <div className="space-y-6">
       <section className="overflow-hidden rounded-lg border border-terminal-border bg-terminal-panel/92 shadow-panel">
         <div className="border-b border-terminal-border p-6">
-          <p className="text-sm text-terminal-cyan">Global AI Supply Chain</p>
+          <p className="text-sm text-terminal-cyan">
+            Global AI Supply Chain
+            <span className="ml-2 text-terminal-muted">全球AI供应链</span>
+          </p>
           <div className="mt-3 grid gap-5 lg:grid-cols-[1fr_340px] lg:items-end">
             <div>
               <h1 className="text-3xl font-semibold text-terminal-text">
                 Listed Company Industrial Chain Dashboard
               </h1>
               <p className="mt-3 max-w-4xl text-sm leading-6 text-terminal-muted">
-                A read-only institutional map of AI infrastructure and software
-                exposure across the US, Japan, Korea, Taiwan, and Europe.
+                Bloomberg-style institutional map of AI infrastructure and
+                software exposure across the US, Japan, Korea, Taiwan, and
+                Europe. Chinese labels are used as a secondary recognition layer.
               </p>
             </div>
             <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
@@ -120,27 +151,42 @@ export default async function GlobalSupplyChainPage() {
         <div className="grid gap-3 p-4 md:grid-cols-4">
           <SummaryTile
             label="Companies Tracked"
+            secondaryLabel="覆盖公司"
             value={String(companies.length)}
             detail={`${layers.length} supply-chain lanes`}
           />
           <SummaryTile
             label="Strongest Layer"
-            value={strongestLayer?.name ?? "n/a"}
+            secondaryLabel="最强环节"
+            value={
+              strongestLayer
+                ? getLayerTerm(strongestLayer.id).primary
+                : "n/a"
+            }
             detail={`${
               strongestLayer ? layerMomentum(strongestLayer).toFixed(2) : "0.00"
             }% avg move`}
           />
           <SummaryTile
             label="Weakest Data Coverage"
-            value={weakestCoverage?.name ?? "n/a"}
+            secondaryLabel="最低数据覆盖"
+            value={
+              weakestCoverage
+                ? getLayerTerm(weakestCoverage.id).primary
+                : "n/a"
+            }
             detail={`${Math.round(
               weakestCoverage ? layerCoverage(weakestCoverage) * 100 : 0,
             )}% quoted`}
           />
           <SummaryTile
             label="Active Narratives"
+            secondaryLabel="活跃叙事"
             value={String(narratives.length)}
-            detail={narratives.slice(0, 3).join(" · ")}
+            detail={narratives
+              .slice(0, 3)
+              .map((narrative) => getNarrativeTerm(narrative).primary)
+              .join(" · ")}
           />
         </div>
       </section>
@@ -153,8 +199,8 @@ export default async function GlobalSupplyChainPage() {
                 Upstream to Downstream Flow
               </h2>
               <p className="mt-1 text-sm text-terminal-muted">
-                Scroll horizontally to scan lanes from accelerators through
-                applications and automation.
+                Scroll horizontally from semiconductor equipment and foundry to
+                cloud, software, applications, and automation.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -163,7 +209,7 @@ export default async function GlobalSupplyChainPage() {
                   key={narrative}
                   className={`rounded border px-2 py-1 text-[11px] ${narrativeClass[narrative]}`}
                 >
-                  {narrative}
+                  <BilingualLabel {...getNarrativeTerm(narrative)} />
                 </span>
               ))}
             </div>
@@ -189,7 +235,7 @@ export default async function GlobalSupplyChainPage() {
                       </div>
                     </div>
                     <h3 className="mt-3 min-h-[44px] text-sm font-semibold leading-5 text-terminal-text">
-                      {layer.name}
+                      <BilingualLabel {...getLayerTerm(layer.id)} />
                     </h3>
                     <p className="mt-2 min-h-[54px] text-xs leading-5 text-terminal-muted">
                       {layer.thesis}
@@ -210,31 +256,37 @@ export default async function GlobalSupplyChainPage() {
         <aside className="space-y-4">
           <Panel title="Key Bottlenecks">
             <PanelItem
-              label="HBM supply"
-              value="SK Hynix, Samsung, Micron capacity and qualification remain critical to accelerator availability."
+              label="HBM Supply"
+              secondaryLabel="高带宽存储供给"
+              value="SK Hynix SK海力士, Samsung Electronics 三星电子, and Micron capacity/qualification remain critical to accelerator availability."
             />
             <PanelItem
-              label="Advanced foundry"
-              value="TSMC and EUV/tool capacity remain the central manufacturing control point."
+              label="Advanced Foundry"
+              secondaryLabel="先进晶圆代工"
+              value="TSMC 台积电 and EUV (极紫外光刻) tool capacity remain the central manufacturing control point."
             />
             <PanelItem
-              label="Power and thermal"
-              value="Vertiv, Eaton, Schneider, and server ODMs define the physical deployment constraint."
+              label="Power & Thermal"
+              secondaryLabel="电力与散热"
+              value="Vertiv, Eaton, Schneider Electric 施耐德电气, and server ODMs define the physical deployment constraint."
             />
           </Panel>
 
           <Panel title="Second-Order Beneficiaries">
             <PanelItem
-              label="Networking and optics"
-              value="Arista, Marvell, Coherent, and optical watchlist names benefit as clusters scale out."
+              label="Networking & Optics"
+              secondaryLabel="网络与高速光互联"
+              value="Arista, Marvell, Coherent, and Fabrinet benefit as AI clusters scale out toward optical networking and CPO (共封装光学)."
             />
             <PanelItem
-              label="Packaging and test"
-              value="ASE, BESI, Hanmi, Advantest, and Disco sit behind AI package complexity."
+              label="Packaging & Test"
+              secondaryLabel="先进封装与测试"
+              value="ASE Technology 日月光, BESI, Hanmi, Advantest 爱德万测试, and Disco sit behind CoWoS (晶圆级先进封装), TSV (硅通孔), and AI package complexity."
             />
             <PanelItem
-              label="Enterprise workflow"
-              value="Palantir, ServiceNow, Adobe, SAP, Snowflake, and Datadog monetize AI in operating layers."
+              label="Enterprise Workflow"
+              secondaryLabel="企业工作流"
+              value="Palantir, ServiceNow, Adobe, SAP, Snowflake, and Datadog monetize AI in operating and data layers."
             />
           </Panel>
 
@@ -252,6 +304,19 @@ export default async function GlobalSupplyChainPage() {
               </p>
             </div>
           </Panel>
+
+          <Panel title="Critical Abbreviations">
+            <div className="flex flex-wrap gap-2">
+              {abbreviationTerms.map((term) => (
+                <span
+                  key={term.primary}
+                  className="rounded border border-terminal-border bg-terminal-panelSoft/70 px-2 py-1 text-xs text-terminal-text"
+                >
+                  <BilingualLabel {...term} />
+                </span>
+              ))}
+            </div>
+          </Panel>
         </aside>
       </div>
     </div>
@@ -260,10 +325,12 @@ export default async function GlobalSupplyChainPage() {
 
 function SummaryTile({
   label,
+  secondaryLabel,
   value,
   detail,
 }: {
   label: string;
+  secondaryLabel?: string;
   value: string;
   detail: string;
 }) {
@@ -271,6 +338,9 @@ function SummaryTile({
     <div className="rounded-md border border-terminal-border bg-terminal-panelSoft/70 p-4">
       <div className="text-xs uppercase tracking-[0.16em] text-terminal-muted">
         {label}
+        {secondaryLabel ? (
+          <span className="ml-1.5 normal-case tracking-normal">{secondaryLabel}</span>
+        ) : null}
       </div>
       <div className="mt-2 line-clamp-2 min-h-[48px] text-lg font-semibold leading-6 text-terminal-text">
         {value}
@@ -281,12 +351,19 @@ function SummaryTile({
 }
 
 function CompanyNode({ company }: { company: SupplyChainCompanyWithQuote }) {
+  const displayName = getCompanyDisplayName(company.name);
+
   return (
     <div className="rounded border border-terminal-border bg-terminal-bg/60 p-2.5 transition hover:border-terminal-cyan/50">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="truncate text-sm font-medium text-terminal-text">
-            {company.name}
+            {displayName.primary}
+            {displayName.secondary ? (
+              <span className="ml-1.5 text-xs font-normal text-terminal-muted">
+                {displayName.secondary}
+              </span>
+            ) : null}
           </div>
           <div className="mt-0.5 text-xs text-terminal-muted">
             {company.ticker}
@@ -335,7 +412,7 @@ function CompanyNode({ company }: { company: SupplyChainCompanyWithQuote }) {
             key={narrative}
             className={`rounded border px-1.5 py-0.5 text-[10px] ${narrativeClass[narrative]}`}
           >
-            {narrative}
+            {getNarrativeTerm(narrative).primary}
           </span>
         ))}
       </div>
@@ -358,10 +435,25 @@ function Panel({
   );
 }
 
-function PanelItem({ label, value }: { label: string; value: string }) {
+function PanelItem({
+  label,
+  secondaryLabel,
+  value,
+}: {
+  label: string;
+  secondaryLabel?: string;
+  value: string;
+}) {
   return (
     <div className="rounded border border-terminal-border bg-terminal-panelSoft/70 p-3">
-      <div className="text-sm font-medium text-terminal-text">{label}</div>
+      <div className="text-sm font-medium text-terminal-text">
+        {label}
+        {secondaryLabel ? (
+          <span className="ml-1.5 text-xs font-normal text-terminal-muted">
+            {secondaryLabel}
+          </span>
+        ) : null}
+      </div>
       <div className="mt-1 text-xs leading-5 text-terminal-muted">{value}</div>
     </div>
   );

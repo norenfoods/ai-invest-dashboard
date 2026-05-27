@@ -2,6 +2,11 @@ import Link from "next/link";
 import DashboardCard from "@/components/DashboardCard";
 import { getCompanyPath } from "@/lib/ai-industry/companies";
 import { listAiNarratives } from "@/lib/ai-industry/narratives";
+import {
+  formatBilingual,
+  getCompanyDisplayName,
+  getNarrativeTerm,
+} from "@/lib/ai-industry/terminology";
 
 export const dynamic = "force-dynamic";
 
@@ -23,13 +28,18 @@ export default async function AiNarrativesPage() {
   return (
     <div className="space-y-6">
       <section className="rounded-lg border border-terminal-border bg-terminal-panel/92 p-6 shadow-panel">
-        <p className="text-sm text-terminal-cyan">Narrative Tracker</p>
+        <p className="text-sm text-terminal-cyan">
+          Narrative Tracker
+          <span className="ml-2 text-terminal-muted">叙事追踪</span>
+        </p>
         <h1 className="mt-2 text-3xl font-semibold text-terminal-text">
           AI Narrative Intelligence
         </h1>
         <p className="mt-3 max-w-4xl text-sm leading-6 text-terminal-muted">
-          Tracks capital-cycle narratives, linked companies, likely winners,
-          second-order beneficiaries, risks, and regime relevance.
+          English-first institutional narrative monitor for capital-cycle
+          themes, linked companies, likely winners, second-order beneficiaries,
+          risks, and regime relevance. Chinese labels act as concise recognition
+          support.
         </p>
       </section>
 
@@ -37,7 +47,7 @@ export default async function AiNarrativesPage() {
         {narratives.map((narrative) => (
           <DashboardCard
             key={narrative.id}
-            title={narrative.name}
+            title={formatBilingual(getNarrativeTerm(narrative.name))}
             eyebrow={narrative.slug}
           >
             <div className="space-y-4">
@@ -67,7 +77,12 @@ export default async function AiNarrativesPage() {
                     className="flex items-center justify-between gap-3 rounded border border-terminal-border bg-terminal-panelSoft/70 px-3 py-2 text-sm transition hover:border-terminal-cyan/50"
                   >
                     <span className="text-terminal-text">
-                      {company.name}
+                      {getCompanyDisplayName(company.name).primary}
+                      {getCompanyDisplayName(company.name).secondary ? (
+                        <span className="ml-1.5 text-xs text-terminal-muted">
+                          {getCompanyDisplayName(company.name).secondary}
+                        </span>
+                      ) : null}
                       <span className="ml-2 text-xs text-terminal-muted">
                         {company.ticker}
                       </span>

@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { getCompanyPath } from "@/lib/ai-industry/companies";
 import { listAiThematicTheses } from "@/lib/ai-industry/theses";
+import {
+  formatBilingual,
+  getCompanyDisplayName,
+  getNarrativeTerm,
+} from "@/lib/ai-industry/terminology";
 import type { AiThesisDetail } from "@/lib/ai-industry/types";
 
 export const dynamic = "force-dynamic";
@@ -95,15 +100,19 @@ export default async function AiThesesPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-6">
       <section className="rounded-lg border border-terminal-border bg-terminal-panel/92 p-6 shadow-panel">
-        <p className="text-sm text-terminal-cyan">Thesis Intelligence Engine</p>
+        <p className="text-sm text-terminal-cyan">
+          Thesis Intelligence Engine
+          <span className="ml-2 text-terminal-muted">投资主线引擎</span>
+        </p>
         <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-3xl font-semibold text-terminal-text">
               AI Investment Theses
             </h1>
             <p className="mt-3 max-w-4xl text-sm leading-6 text-terminal-muted">
-              Institutional scanning layer for active AI industry theses,
-              evidence balance, linked narratives, and exposed company nodes.
+              English-first institutional scanning layer for active AI industry
+              theses, evidence balance, linked narratives, and exposed company
+              nodes. Chinese labels provide concise analyst-side recognition.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 text-center text-xs">
@@ -251,7 +260,7 @@ export default async function AiThesesPage({ searchParams }: PageProps) {
                           key={narrative.id}
                           className="rounded border border-terminal-border px-2 py-1 text-[11px] text-terminal-cyan"
                         >
-                          {narrative.name}
+                          {formatBilingual(getNarrativeTerm(narrative.name))}
                         </span>
                       ))}
                     </div>
@@ -265,6 +274,11 @@ export default async function AiThesesPage({ searchParams }: PageProps) {
                           className="rounded border border-terminal-border px-2 py-1 text-[11px] text-terminal-muted hover:border-terminal-cyan/50 hover:text-terminal-text"
                         >
                           {company.ticker}
+                          {getCompanyDisplayName(company.name).secondary ? (
+                            <span className="ml-1 text-terminal-muted">
+                              {getCompanyDisplayName(company.name).secondary}
+                            </span>
+                          ) : null}
                         </Link>
                       ))}
                     </div>

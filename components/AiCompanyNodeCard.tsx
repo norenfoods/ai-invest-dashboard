@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCompanyPath } from "@/lib/ai-industry/companies";
 import type { AiIndustryQuote } from "@/lib/ai-industry/quotes";
+import { getCompanyDisplayName, getNarrativeTerm } from "@/lib/ai-industry/terminology";
 import type { AiCompanyNode } from "@/lib/ai-industry/types";
 
 type AiCompanyNodeCardProps = {
@@ -49,6 +50,7 @@ export default function AiCompanyNodeCard({
   badges = [],
 }: AiCompanyNodeCardProps) {
   const change = quote?.changePercent;
+  const displayName = getCompanyDisplayName(company.name);
 
   return (
     <Link
@@ -58,7 +60,12 @@ export default function AiCompanyNodeCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-sm font-semibold text-terminal-text">
-            {company.name}
+            {displayName.primary}
+            {displayName.secondary ? (
+              <span className="ml-1.5 text-xs font-normal text-terminal-muted">
+                {displayName.secondary}
+              </span>
+            ) : null}
           </div>
           <div className="mt-1 text-xs text-terminal-muted">
             {company.ticker} · {company.exchange} · {company.region}
@@ -93,7 +100,7 @@ export default function AiCompanyNodeCard({
               key={badge}
               className="rounded border border-terminal-cyan/25 bg-terminal-bg/40 px-1.5 py-0.5 text-[10px] uppercase text-terminal-cyan"
             >
-              {badge}
+              {getNarrativeTerm(badge).primary}
             </span>
           ))}
         </div>

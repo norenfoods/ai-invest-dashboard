@@ -1,6 +1,13 @@
 import Link from "next/link";
 import AiCompanyNodeCard from "@/components/AiCompanyNodeCard";
 import { getAiIndustryQuotes } from "@/lib/ai-industry/quotes";
+import {
+  abbreviationTerms,
+  formatBilingual,
+  getCompanyDisplayName,
+  getLayerTerm,
+  getNarrativeTerm,
+} from "@/lib/ai-industry/terminology";
 import type {
   AiCompanyNode,
   AiCompanyRelationship,
@@ -37,23 +44,23 @@ const narrativeBadges = (company: AiCompanyNode, mapSlug: string): string[] => {
   const badges: string[] = [];
 
   if (text.includes("capex") || text.includes("datacenter")) {
-    badges.push("AI capex");
+    badges.push("AI Capex Supercycle");
   }
 
   if (text.includes("hbm") || text.includes("memory")) {
-    badges.push("HBM shortage");
+    badges.push("HBM Shortage");
   }
 
   if (text.includes("china") || text.includes("国产")) {
-    badges.push("China domestic substitution");
+    badges.push("China Domestic Substitution");
   }
 
   if (text.includes("power") || text.includes("cooling") || text.includes("电力")) {
-    badges.push("datacenter power");
+    badges.push("Datacenter Power Bottleneck");
   }
 
   if (text.includes("inference") || text.includes("software")) {
-    badges.push("inference demand");
+    badges.push("Inference Demand Explosion");
   }
 
   return badges;
@@ -66,7 +73,14 @@ const relationshipLabel = (
   const source = companiesById.get(relationship.source_company_id);
   const target = companiesById.get(relationship.target_company_id);
 
-  return `${source?.name ?? "External"} -> ${target?.name ?? "External"}`;
+  const sourceName = source
+    ? formatBilingual(getCompanyDisplayName(source.name))
+    : "External";
+  const targetName = target
+    ? formatBilingual(getCompanyDisplayName(target.name))
+    : "External";
+
+  return `${sourceName} -> ${targetName}`;
 };
 
 export default async function AiMarketMapView({
@@ -101,7 +115,9 @@ export default async function AiMarketMapView({
               {map.name}
             </h1>
             <p className="mt-3 max-w-4xl text-sm leading-6 text-terminal-muted">
-              {map.description}
+              {map.description} English is the primary research label; Chinese
+              terms are used as a secondary recognition layer for institutional
+              cross-border coverage.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 text-center lg:grid-cols-4">
@@ -140,16 +156,30 @@ export default async function AiMarketMapView({
           </div>
         </div>
         <div className="mt-5 flex flex-wrap gap-2">
-          {["AI capex", "HBM shortage", "China domestic substitution", "datacenter power", "inference demand"].map(
+          {[
+            "AI Capex Supercycle",
+            "HBM Shortage",
+            "China Domestic Substitution",
+            "Datacenter Power Bottleneck",
+            "Inference Demand Explosion",
+          ].map(
             (badge) => (
               <span
                 key={badge}
                 className="rounded border border-terminal-cyan/30 bg-terminal-bg/50 px-2.5 py-1 text-xs text-terminal-cyan"
               >
-                {badge}
+                {formatBilingual(getNarrativeTerm(badge))}
               </span>
             ),
           )}
+          {abbreviationTerms.slice(0, 4).map((term) => (
+            <span
+              key={term.primary}
+              className="rounded border border-terminal-border bg-terminal-bg/40 px-2.5 py-1 text-xs text-terminal-muted"
+            >
+              {formatBilingual(term)}
+            </span>
+          ))}
         </div>
       </section>
 
@@ -186,7 +216,7 @@ export default async function AiMarketMapView({
                     Layer {index + 1}
                   </div>
                   <h3 className="mt-1 text-sm font-semibold text-terminal-text">
-                    {category.name}
+                    {formatBilingual(getLayerTerm(category.slug))}
                   </h3>
                   <p className="mt-2 text-xs leading-5 text-terminal-muted">
                     {category.companies.length} nodes ·{" "}
@@ -282,7 +312,7 @@ export default async function AiMarketMapView({
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-sm text-terminal-text">
-                      {category.name}
+                      {formatBilingual(getLayerTerm(category.slug))}
                     </span>
                     <span className="text-xs text-terminal-cyan">
                       {category.companies.length}

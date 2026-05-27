@@ -3,6 +3,11 @@ import { notFound } from "next/navigation";
 import DashboardCard from "@/components/DashboardCard";
 import { getCompanyPath } from "@/lib/ai-industry/companies";
 import { getAiThematicThesis } from "@/lib/ai-industry/theses";
+import {
+  formatBilingual,
+  getCompanyDisplayName,
+  getNarrativeTerm,
+} from "@/lib/ai-industry/terminology";
 import type { AiThesisDetail } from "@/lib/ai-industry/types";
 
 export const dynamic = "force-dynamic";
@@ -56,7 +61,10 @@ export default async function AiThesisDetailPage({ params }: PageProps) {
         </Link>
         <div className="mt-4 grid gap-5 lg:grid-cols-[1fr_280px]">
           <div>
-            <p className="text-sm text-terminal-muted">Thesis Statement</p>
+            <p className="text-sm text-terminal-muted">
+              Thesis Statement
+              <span className="ml-2">投资主线陈述</span>
+            </p>
             <h1 className="mt-2 text-3xl font-semibold text-terminal-text">
               {thesis.title}
             </h1>
@@ -124,7 +132,7 @@ export default async function AiThesisDetailPage({ params }: PageProps) {
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="font-medium text-terminal-text">
-                    {narrative.name}
+                    {formatBilingual(getNarrativeTerm(narrative.name))}
                   </div>
                   <div className="text-xs uppercase text-terminal-cyan">
                     {narrative.status}
@@ -148,7 +156,12 @@ export default async function AiThesisDetailPage({ params }: PageProps) {
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="font-medium text-terminal-text">
-                    {company.name}
+                    {getCompanyDisplayName(company.name).primary}
+                    {getCompanyDisplayName(company.name).secondary ? (
+                      <span className="ml-1.5 text-xs font-normal text-terminal-muted">
+                        {getCompanyDisplayName(company.name).secondary}
+                      </span>
+                    ) : null}
                   </div>
                   <div className="text-xs text-terminal-cyan">
                     {company.ticker}
@@ -202,7 +215,7 @@ export default async function AiThesisDetailPage({ params }: PageProps) {
                   ) : null}
                   {event.related_narrative ? (
                     <span className="rounded border border-terminal-border px-2 py-1">
-                      {event.related_narrative.name}
+                      {getNarrativeTerm(event.related_narrative.name).primary}
                     </span>
                   ) : null}
                 </div>
@@ -245,7 +258,7 @@ function EvidenceItem({
           <span>{evidence.related_company.ticker}</span>
         ) : null}
         {evidence.related_narrative ? (
-          <span>{evidence.related_narrative.name}</span>
+          <span>{getNarrativeTerm(evidence.related_narrative.name).primary}</span>
         ) : null}
       </div>
     </div>
