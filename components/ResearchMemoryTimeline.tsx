@@ -15,6 +15,11 @@ const categoryLabel: Record<ResearchMemoryCategory, string> = {
   risk_change: "风险变化",
   sector_state: "板块状态",
   stock_state: "重点股票状态",
+  market_regime: "市场状态记忆",
+  narrative_evolution: "叙事演化",
+  thesis_update: "Thesis 更新",
+  earnings_memory: "财报 / 公司记忆",
+  supply_chain_change: "产业链变化",
 };
 
 const categoryClass: Record<ResearchMemoryCategory, string> = {
@@ -22,6 +27,11 @@ const categoryClass: Record<ResearchMemoryCategory, string> = {
   risk_change: "border-terminal-red/50 text-terminal-red",
   sector_state: "border-terminal-amber/50 text-terminal-amber",
   stock_state: "border-terminal-green/50 text-terminal-green",
+  market_regime: "border-terminal-cyan/50 text-terminal-cyan",
+  narrative_evolution: "border-terminal-green/50 text-terminal-green",
+  thesis_update: "border-terminal-amber/50 text-terminal-amber",
+  earnings_memory: "border-terminal-border text-terminal-muted",
+  supply_chain_change: "border-terminal-cyan/50 text-terminal-cyan",
 };
 
 export default function ResearchMemoryTimeline({

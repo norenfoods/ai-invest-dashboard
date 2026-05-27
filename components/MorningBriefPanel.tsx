@@ -54,6 +54,32 @@ const buildMarkdown = (brief: MorningBrief): string =>
       ),
     ),
     "",
+    sectionMarkdown("Global AI Chain Changes", brief.globalAiChainChanges),
+    "",
+    sectionMarkdown(
+      "China 国产替代 Changes",
+      brief.chinaDomesticSubstitutionChanges,
+    ),
+    "",
+    sectionMarkdown(
+      "Narrative Acceleration / Fading",
+      brief.narrativeAccelerationFading,
+    ),
+    "",
+    sectionMarkdown(
+      "Thesis Reinforcement / Contradiction",
+      brief.thesisReinforcementContradiction,
+    ),
+    "",
+    sectionMarkdown("AI Infrastructure Risk Signals", brief.aiInfrastructureRiskSignals),
+    "",
+    sectionMarkdown("AI Capex and Datacenter Signals", brief.aiCapexDatacenterSignals),
+    "",
+    sectionMarkdown(
+      "Important Company Memory Updates",
+      brief.importantCompanyMemoryUpdates,
+    ),
+    "",
     sectionMarkdown("过去 7 天市场变化", brief.last7DaysChanges),
     "",
     sectionMarkdown("AI 市场状态变化趋势", brief.marketStateTrends),
@@ -150,6 +176,33 @@ function BriefList({ items }: { items: string[] }) {
   );
 }
 
+function SectionPair({
+  leftTitle,
+  leftEyebrow,
+  leftItems,
+  rightTitle,
+  rightEyebrow,
+  rightItems,
+}: {
+  leftTitle: string;
+  leftEyebrow: string;
+  leftItems: string[];
+  rightTitle: string;
+  rightEyebrow: string;
+  rightItems: string[];
+}) {
+  return (
+    <div className="grid gap-6 xl:grid-cols-2">
+      <DashboardCard title={leftTitle} eyebrow={leftEyebrow}>
+        <BriefList items={leftItems} />
+      </DashboardCard>
+      <DashboardCard title={rightTitle} eyebrow={rightEyebrow}>
+        <BriefList items={rightItems} />
+      </DashboardCard>
+    </div>
+  );
+}
+
 export default function MorningBriefPanel({
   initialBrief,
 }: MorningBriefPanelProps) {
@@ -230,6 +283,40 @@ export default function MorningBriefPanel({
             </button>
           </div>
         </div>
+      </DashboardCard>
+
+      <SectionPair
+        leftTitle="Global AI Chain Changes"
+        leftEyebrow="US · Japan · Korea · Taiwan · Europe"
+        leftItems={brief.globalAiChainChanges}
+        rightTitle="China 国产替代 Changes"
+        rightEyebrow="AI Chips · Equipment · Servers · Optics"
+        rightItems={brief.chinaDomesticSubstitutionChanges}
+      />
+
+      <SectionPair
+        leftTitle="Narrative Acceleration / Fading"
+        leftEyebrow="Narrative Tracker"
+        leftItems={brief.narrativeAccelerationFading}
+        rightTitle="Thesis Reinforcement / Contradiction"
+        rightEyebrow="Thesis Tracker"
+        rightItems={brief.thesisReinforcementContradiction}
+      />
+
+      <SectionPair
+        leftTitle="AI Infrastructure Risk Signals"
+        leftEyebrow="HBM · Power · Packaging · Export Controls"
+        leftItems={brief.aiInfrastructureRiskSignals}
+        rightTitle="AI Capex and Datacenter Signals"
+        rightEyebrow="Cloud Capex · Power · Networking"
+        rightItems={brief.aiCapexDatacenterSignals}
+      />
+
+      <DashboardCard
+        title="Important Company Memory Updates"
+        eyebrow="Company Memory"
+      >
+        <BriefList items={brief.importantCompanyMemoryUpdates} />
       </DashboardCard>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_0.78fr]">
