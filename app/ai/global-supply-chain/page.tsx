@@ -23,6 +23,10 @@ const narrativeClass: Record<SupplyChainNarrative, string> = {
   "optical networking": "border-sky-300/45 text-sky-300",
   robotics: "border-fuchsia-300/45 text-fuchsia-300",
   "cloud AI": "border-indigo-300/45 text-indigo-300",
+  "sovereign AI": "border-terminal-cyan/45 text-terminal-cyan",
+  "advanced packaging": "border-terminal-amber/50 text-terminal-amber",
+  "AI agent infrastructure": "border-terminal-green/45 text-terminal-green",
+  cybersecurity: "border-terminal-red/45 text-terminal-red",
 };
 
 const regionClass: Record<SupplyChainRegion, string> = {
@@ -31,6 +35,7 @@ const regionClass: Record<SupplyChainRegion, string> = {
   Korea: "border-terminal-amber/50 text-terminal-amber",
   Japan: "border-fuchsia-300/50 text-fuchsia-300",
   Europe: "border-sky-300/50 text-sky-300",
+  China: "border-terminal-red/50 text-terminal-red",
 };
 
 const dataStatusClass = {
@@ -131,8 +136,9 @@ export default async function GlobalSupplyChainPage() {
               </h1>
               <p className="mt-3 max-w-4xl text-sm leading-6 text-terminal-muted">
                 Bloomberg-style institutional map of AI infrastructure and
-                software exposure across the US, Japan, Korea, Taiwan, and
-                Europe. Chinese labels are used as a secondary recognition layer.
+                software exposure across the US, Japan, Korea, Taiwan, Europe,
+                and selected China-listed bottleneck nodes. Chinese labels are
+                used as a secondary recognition layer.
               </p>
             </div>
             <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
@@ -258,7 +264,7 @@ export default async function GlobalSupplyChainPage() {
             <PanelItem
               label="HBM Supply"
               secondaryLabel="高带宽存储供给"
-              value="SK Hynix SK海力士, Samsung Electronics 三星电子, and Micron capacity/qualification remain critical to accelerator availability."
+              value="SK Hynix SK海力士, Samsung Electronics 三星电子, Micron, Kioxia, and Western Digital define the memory and storage supply read-through."
             />
             <PanelItem
               label="Advanced Foundry"
@@ -266,9 +272,14 @@ export default async function GlobalSupplyChainPage() {
               value="TSMC 台积电 and EUV (极紫外光刻) tool capacity remain the central manufacturing control point."
             />
             <PanelItem
+              label="Advanced Packaging Constraint"
+              secondaryLabel="先进封装约束"
+              value="ASE Technology 日月光, Amkor, JCET, Tongfu, BESI, and Hanmi sit behind CoWoS (晶圆级先进封装), TSV (硅通孔), and AI package complexity."
+            />
+            <PanelItem
               label="Power & Thermal"
               secondaryLabel="电力与散热"
-              value="Vertiv, Eaton, Schneider Electric 施耐德电气, and server ODMs define the physical deployment constraint."
+              value="Vertiv, Eaton, Schneider Electric 施耐德电气, Trane, Johnson Controls, colocation landlords, and server ODMs define the physical deployment constraint."
             />
           </Panel>
 
@@ -276,17 +287,22 @@ export default async function GlobalSupplyChainPage() {
             <PanelItem
               label="Networking & Optics"
               secondaryLabel="网络与高速光互联"
-              value="Arista, Marvell, Coherent, and Fabrinet benefit as AI clusters scale out toward optical networking and CPO (共封装光学)."
+              value="Arista, Marvell, Astera, Credo, Coherent, Fabrinet, Ciena, Applied Optoelectronics, and Nokia/Infinera benefit as clusters scale toward optical networking and CPO (共封装光学)."
             />
             <PanelItem
               label="Packaging & Test"
               secondaryLabel="先进封装与测试"
-              value="ASE Technology 日月光, BESI, Hanmi, Advantest 爱德万测试, and Disco sit behind CoWoS (晶圆级先进封装), TSV (硅通孔), and AI package complexity."
+              value="Amkor, ASE, JCET, Tongfu, BESI, Hanmi, Advantest 爱德万测试, and Disco increase the packaging/test density of the map."
             />
             <PanelItem
-              label="Enterprise Workflow"
-              secondaryLabel="企业工作流"
-              value="Palantir, ServiceNow, Adobe, SAP, Snowflake, and Datadog monetize AI in operating and data layers."
+              label="AI Agent Infrastructure"
+              secondaryLabel="AI智能体基础设施"
+              value="MongoDB, Elastic, Confluent, Datadog, CrowdStrike, Palo Alto Networks, Zscaler, Palantir, ServiceNow, Snowflake, SAP, and Adobe improve software-layer narrative density."
+            />
+            <PanelItem
+              label="Robotics Renaissance"
+              secondaryLabel="机器人复兴"
+              value="FANUC, Yaskawa, Keyence, ABB, Rockwell, and Siemens provide listed exposure to factory automation and embodied AI optionality."
             />
           </Panel>
 

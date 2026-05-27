@@ -28,6 +28,10 @@ const layerTerms: Record<string, BilingualTerm> = {
     primary: "Semiconductor Equipment",
     secondary: "半导体设备",
   },
+  "eda-ip-design": {
+    primary: "EDA / IP / Silicon Design",
+    secondary: "EDA / IP / 芯片设计",
+  },
   "semiconductor-equipment": {
     primary: "Semiconductor Equipment",
     secondary: "半导体设备",
@@ -49,8 +53,8 @@ const layerTerms: Record<string, BilingualTerm> = {
     secondary: "高速光互联 / 共封装光学",
   },
   "datacenter-power": {
-    primary: "Datacenter Power & Cooling",
-    secondary: "数据中心电力与散热",
+    primary: "Datacenter Power / Cooling / Colocation",
+    secondary: "数据中心电力 / 散热 / 托管",
   },
   "cloud-hyperscalers": {
     primary: "Cloud / Hyperscalers",
@@ -128,12 +132,20 @@ const narrativeTerms: Record<string, BilingualTerm> = {
     secondary: "高速光互联",
   },
   robotics: {
-    primary: "Robotics / Automation",
-    secondary: "机器人 / 自动化",
+    primary: "Robotics Renaissance",
+    secondary: "机器人复兴",
   },
   "cloud ai": {
     primary: "Cloud AI",
     secondary: "云端AI",
+  },
+  "sovereign ai": {
+    primary: "Sovereign AI",
+    secondary: "主权AI",
+  },
+  "advanced packaging": {
+    primary: "Advanced Packaging Constraint",
+    secondary: "先进封装约束",
   },
   "ai agent infrastructure": {
     primary: "AI Agent Infrastructure",
@@ -143,10 +155,6 @@ const narrativeTerms: Record<string, BilingualTerm> = {
     primary: "AI Agent Infrastructure",
     secondary: "AI智能体基础设施",
   },
-  "sovereign ai": {
-    primary: "Sovereign AI",
-    secondary: "主权AI",
-  },
   "china domestic substitution": {
     primary: "China Domestic Substitution",
     secondary: "国产替代",
@@ -155,6 +163,10 @@ const narrativeTerms: Record<string, BilingualTerm> = {
     primary: "China Domestic Substitution",
     secondary: "国产替代",
   },
+  cybersecurity: {
+    primary: "Cybersecurity / AI Infrastructure",
+    secondary: "网络安全 / AI基础设施",
+  },
 };
 
 const companyTerms: Record<string, string> = {
@@ -162,12 +174,21 @@ const companyTerms: Record<string, string> = {
   "SK Hynix": "SK海力士",
   "Tokyo Electron": "东京电子",
   ASML: "阿斯麦",
+  Kioxia: "铠侠",
   Advantest: "爱德万测试",
   Disco: "迪思科",
+  Amkor: "安靠",
+  JCET: "长电科技",
+  "Tongfu Microelectronics": "通富微电",
   "ASM International": "ASM国际",
   "BE Semiconductor": "BESI",
   "Schneider Electric": "施耐德电气",
   Siemens: "西门子",
+  ABB: "ABB",
+  "Yaskawa Electric": "安川电机",
+  "Rockwell Automation": "罗克韦尔自动化",
+  "Johnson Controls": "江森自控",
+  "Trane Technologies": "特灵科技",
   "Samsung Electronics": "三星电子",
   "ASE Technology": "日月光",
   MediaTek: "联发科",
