@@ -15,6 +15,7 @@ const navItems = [
   { href: "/earnings", label: "财报分析" },
   { href: "/stocks/NVDA", label: "个股详情" },
   { href: "/ai/global", label: "Global AI Map" },
+  { href: "/ai/global-supply-chain", label: "Global Supply Chain" },
   { href: "/ai/china", label: "国产替代 Map" },
   { href: "/ai/narratives", label: "Narratives" },
   { href: "/ai/theses", label: "Theses" },
